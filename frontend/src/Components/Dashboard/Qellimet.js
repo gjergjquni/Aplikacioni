@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './Qellimet.css';
 import logo from '../../img/logo1.png';
 import { FaHome, FaExchangeAlt, FaBullseye, FaRobot, FaCog, FaQuestionCircle, FaEdit, FaTrash, FaPlus, FaLaptop, FaPlane, FaCar, FaGraduationCap, FaHeart, FaGift, FaQuestion, FaBars, FaTimes } from 'react-icons/fa';
@@ -61,6 +61,14 @@ const Qellimet = ({ onNavigate, currentPage }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [qellimet, setQellimet] = useState(qellimetShembull);
+  const [isCollapsed, setIsCollapsed] = useState(true);
+
+  useEffect(() => {
+    const savedCollapsed = localStorage.getItem('sidebarCollapsed');
+    const savedOpen = localStorage.getItem('sidebarOpen');
+    if (savedCollapsed !== null) setIsCollapsed(savedCollapsed === 'true');
+    if (savedOpen !== null) setSidebarOpen(savedOpen === 'true');
+  }, []);
 
   // Funksioni për të konfirmuar daljen
   const confirmLogout = () => {
@@ -141,32 +149,30 @@ const Qellimet = ({ onNavigate, currentPage }) => {
       {sidebarOpen && (
         <div 
           className="sidebar-overlay"
-          onClick={() => setSidebarOpen(false)}
         ></div>
       )}
 
       {/* Sidebar */}
-      <aside className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''}`}>
+      <aside className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''} ${isCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-header">
-          <div className="sidebar-logo">
+          <div className="sidebar-logo" onClick={() => setIsCollapsed(v => { const nv = !v; localStorage.setItem('sidebarCollapsed', String(nv)); return nv; })}>
             <img src={logo} alt="Logo" />
           </div>
           <button 
             className="sidebar-close-btn"
-            onClick={() => setSidebarOpen(false)}
+            onClick={() => { setSidebarOpen(false); localStorage.setItem('sidebarOpen', 'false'); }}
           >
             <FaTimes />
           </button>
         </div>
         <nav className="sidebar-menu">
-          <button className={`sidebar-link${currentPage === 'dashboard' ? ' active' : ''}`} onClick={() => {onNavigate('dashboard'); setSidebarOpen(false);}}><FaHome /> <span>Ballina</span></button>
-          <button className={`sidebar-link${currentPage === 'transaksionet' ? ' active' : ''}`} onClick={() => {onNavigate('transaksionet'); setSidebarOpen(false);}}><FaExchangeAlt /> <span>Transaksionet</span></button>
-          <button className={`sidebar-link${currentPage === 'qellimet' ? ' active' : ''}`} onClick={() => {onNavigate('qellimet'); setSidebarOpen(false);}}><FaBullseye /> <span>Qëllimet</span></button>
-          <button className={`sidebar-link${currentPage === 'aichat' ? ' active' : ''}`} onClick={() => {onNavigate('aichat'); setSidebarOpen(false);}}><FaRobot className="bot-icon" /> <span>AIChat</span></button>
-          <button className={`sidebar-link${currentPage === 'settings' ? ' active' : ''}`} onClick={() => {onNavigate('settings'); setSidebarOpen(false);}}><FaCog /> <span>Settings</span></button>
-                      <button className={`sidebar-link${currentPage === 'help' ? ' active' : ''}`} onClick={() => {onNavigate('help'); setSidebarOpen(false);}}><FaQuestionCircle /> <span>Ndihmë</span></button>
+          <button className={`sidebar-link${currentPage === 'dashboard' ? ' active' : ''}`} onClick={() => {onNavigate('dashboard');}}><FaHome /> <span>Ballina</span></button>
+          <button className={`sidebar-link${currentPage === 'transaksionet' ? ' active' : ''}`} onClick={() => {onNavigate('transaksionet');}}><FaExchangeAlt /> <span>Transaksionet</span></button>
+          <button className={`sidebar-link${currentPage === 'qellimet' ? ' active' : ''}`} onClick={() => {onNavigate('qellimet');}}><FaBullseye /> <span>Qëllimet</span></button>
+          <button className={`sidebar-link${currentPage === 'aichat' ? ' active' : ''}`} onClick={() => {onNavigate('aichat');}}><FaRobot className="bot-icon" /> <span>AIChat</span></button>
+          <button className={`sidebar-link${currentPage === 'settings' ? ' active' : ''}`} onClick={() => {onNavigate('settings');}}><FaCog /> <span>Settings</span></button>
+          <button className={`sidebar-link${currentPage === 'help' ? ' active' : ''}`} onClick={() => {onNavigate('help');}}><FaQuestionCircle /> <span>Ndihmë</span></button>
         </nav>
-        <button className="logout-btn" onClick={() => setShowLogoutModal(true)}>Dil</button>
       </aside>
 
       {/* Main Content */}

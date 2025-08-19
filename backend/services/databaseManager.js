@@ -4,26 +4,36 @@ const mysql = require('mysql2/promise');
 const EventEmitter = require('events');
 const config = require('../utils/config');
 
+// Enable verbose logs only when LOG_LEVEL is set to 'debug'
+const isDebugLoggingEnabled = config?.logging?.level === 'debug';
+const debugLog = (...args) => { if (isDebugLoggingEnabled) console.log(...args); };
+
 class DatabaseManager extends EventEmitter {
     constructor() {
         super();
         this.pool = null; // We will use a connection pool
         this.isConnected = false;
-        // Enable mock mode by default in development unless DB_FORCE=true
-        const isDevelopment = (process.env.NODE_ENV || 'development') === 'development';
-        const forceRealDb = String(process.env.DB_FORCE || 'false').toLowerCase() === 'true';
-        this.mockMode = isDevelopment && !forceRealDb && !process.env.DB_HOST;
+        
+        // FORCE REAL DATABASE CONNECTION
+        // Set environment variables programmatically to disable mock mode
+        process.env.DB_HOST = 'localhost';
+        process.env.DB_FORCE = 'true';
+        
+        // Disable mock mode completely
+        this.mockMode = false;
+        
+        debugLog('🔧 DatabaseManager: Forcing real database connection');
+        debugLog('🔧 DB_HOST set to:', process.env.DB_HOST);
+        debugLog(' DB_FORCE set to:', process.env.DB_FORCE);
     }
 
     async connect() {
         try {
-            // If in mock mode, skip database connection
-            if (this.mockMode) {
-                console.log('🔧 Running in mock database mode for development');
-                this.isConnected = true;
-                this.emit('connect');
-                return;
-            }
+            debugLog('🔧 Attempting to connect to MySQL database...');
+            debugLog('🔧 Host:', config.database.host);
+            debugLog('🔧 User:', config.database.user);
+            debugLog(' Database:', config.database.name);
+            debugLog('🔧 Port:', config.database.port);
 
             // Create a connection pool instead of a single connection
             this.pool = mysql.createPool({
@@ -43,20 +53,11 @@ class DatabaseManager extends EventEmitter {
 
             this.isConnected = true;
             this.emit('connect');
-            console.log('✅ MySQL Database connected successfully.');
+            console.log('✅ MySQL Database connected successfully!');
 
         } catch (error) {
             console.error('❌ DB connection failed:', error.message);
-            
-            // In development, allow server to start even if DB fails
-            if (process.env.NODE_ENV === 'development') {
-                console.log('🔧 Continuing in mock mode for development');
-                this.mockMode = true;
-                this.isConnected = true;
-                this.emit('connect');
-                return;
-            }
-            
+            console.error('❌ Error details:', error);
             this.emit('error', error);
             throw error; // Re-throw error to stop the server from starting
         }
@@ -65,11 +66,6 @@ class DatabaseManager extends EventEmitter {
     async run(sql, params = []) {
         if (!this.isConnected) throw new Error('Database not connected');
         
-        if (this.mockMode) {
-            console.log('🔧 Mock DB: run() called with:', sql, params);
-            return { insertId: 1, affectedRows: 1 };
-        }
-        
         const [result] = await this.pool.execute(sql, params);
         return result;
     }
@@ -77,22 +73,12 @@ class DatabaseManager extends EventEmitter {
     async get(sql, params = []) {
         if (!this.isConnected) throw new Error('Database not connected');
         
-        if (this.mockMode) {
-            console.log('🔧 Mock DB: get() called with:', sql, params);
-            return null; // Return null for mock mode
-        }
-        
         const [rows] = await this.pool.execute(sql, params);
         return rows[0] || null;
     }
 
     async all(sql, params = []) {
         if (!this.isConnected) throw new Error('Database not connected');
-        
-        if (this.mockMode) {
-            console.log('🔧 Mock DB: all() called with:', sql, params);
-            return []; // Return empty array for mock mode
-        }
         
         const [rows] = await this.pool.execute(sql, params);
         return rows;
@@ -105,11 +91,6 @@ class DatabaseManager extends EventEmitter {
      */
     async logAuditEvent(userId, action, details, req) {
         if (!this.isConnected) return; // Don't try to log if DB is down
-
-        if (this.mockMode) {
-            console.log('🔧 Mock DB: logAuditEvent() called:', { userId, action, details });
-            return;
-        }
 
         const sql = `
             INSERT INTO audit_logs (user_id, action, details, ip_address, user_agent)
@@ -132,7 +113,7 @@ class DatabaseManager extends EventEmitter {
         if (this.pool) {
             await this.pool.end();
             this.isConnected = false;
-            console.log('✅ Database pool closed');
+            debugLog('✅ Database pool closed');
         }
     }
 }

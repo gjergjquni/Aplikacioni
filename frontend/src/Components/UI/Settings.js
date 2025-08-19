@@ -1,7 +1,7 @@
 // Importimi i librarive të nevojshme nga React
 import React, { useState, useEffect } from 'react';
 // Importimi i ikonave nga react-icons
-import { FaCog, FaUser, FaBell, FaPalette, FaGlobe, FaSignOutAlt, FaTrash, FaEdit, FaEye, FaEyeSlash, FaHome, FaExchangeAlt, FaBullseye, FaRobot, FaQuestionCircle, FaBars, FaTimes, FaGraduationCap, FaBriefcase, FaInfoCircle } from 'react-icons/fa';
+import { FaCog, FaUser, FaBell, FaPalette, FaGlobe, FaSignOutAlt, FaTrash, FaEdit, FaEye, FaEyeSlash, FaHome, FaExchangeAlt, FaBullseye, FaRobot, FaQuestionCircle, FaBars, FaTimes, FaGraduationCap, FaInfoCircle } from 'react-icons/fa';
 import './Settings.css';
 import logo from '../../img/logo1.png';
 
@@ -9,20 +9,24 @@ import logo from '../../img/logo1.png';
 export default function Settings({ currentPage, onNavigate, loggedInUser }) {
   // State për të menaxhuar sidebar-in në mobile
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
   
   // State për të menaxhuar formularët e ndryshimit
   const [showNameModal, setShowNameModal] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
-  const [showProfessionModal, setShowProfessionModal] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showAboutModal, setShowAboutModal] = useState(false);
 
-  // Debug për modalin
+  // Persisto gjendjen e sidebar-it
   useEffect(() => {
     console.log('showAboutModal:', showAboutModal);
+    const savedCollapsed = localStorage.getItem('sidebarCollapsed');
+    const savedOpen = localStorage.getItem('sidebarOpen');
+    if (savedCollapsed !== null) setIsCollapsed(savedCollapsed === 'true');
+    if (savedOpen !== null) setSidebarOpen(savedOpen === 'true');
   }, [showAboutModal]);
 
   // State për formularët (mbushet nga loggedInUser)
@@ -43,7 +47,7 @@ export default function Settings({ currentPage, onNavigate, loggedInUser }) {
   const [emailForm, setEmailForm] = useState({ email: loggedInUser?.email || '' });
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [statusForm, setStatusForm] = useState({ status: 'Student' });
-  const [professionForm, setProfessionForm] = useState({ profession: 'Inxhinier Softueri' });
+  // Profesioni është hequr nga cilësimet
 
   // State për preferencat
   const [preferences, setPreferences] = useState({
@@ -176,14 +180,7 @@ export default function Settings({ currentPage, onNavigate, loggedInUser }) {
     setTimeout(() => setShowSuccess(false), 3000);
   };
   
-  // Funksioni për të ndryshuar profesionin
-  const handleProfessionSubmit = (e) => {
-    e.preventDefault();
-    setShowProfessionModal(false);
-    setSuccessMessage('Profesioni u ndryshua me sukses!');
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000);
-  };
+  // Profesioni aktual u heq sipas kërkesës
   
   // Funksioni për të dalë nga llogaria
   const handleLogout = () => {
@@ -221,32 +218,30 @@ export default function Settings({ currentPage, onNavigate, loggedInUser }) {
       {sidebarOpen && (
         <div 
           className="sidebar-overlay"
-          onClick={() => setSidebarOpen(false)}
         ></div>
       )}
 
       {/* Sidebar */}
-      <aside className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''}`}>
+      <aside className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''} ${isCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-header">
-          <div className="sidebar-logo">
+          <div className="sidebar-logo" onClick={() => setIsCollapsed(v => { const nv = !v; localStorage.setItem('sidebarCollapsed', String(nv)); return nv; })}>
             <img src={logo} alt="Logo" />
           </div>
           <button 
             className="sidebar-close-btn"
-            onClick={() => setSidebarOpen(false)}
+            onClick={() => { setSidebarOpen(false); localStorage.setItem('sidebarOpen', 'false'); }}
           >
             <FaTimes />
           </button>
         </div>
         <nav className="sidebar-menu">
-          <button type="button" onClick={e => {e.preventDefault(); onNavigate('dashboard'); setSidebarOpen(false);}}><FaHome /> <span>Ballina</span></button>
-          <button type="button" onClick={e => {e.preventDefault(); onNavigate('transaksionet'); setSidebarOpen(false);}}><FaExchangeAlt /> <span>Transaksionet</span></button>
-          <button type="button" onClick={e => {e.preventDefault(); onNavigate('qellimet'); setSidebarOpen(false);}}><FaBullseye /> <span>Qëllimet</span></button>
-          <button type="button" onClick={e => {e.preventDefault(); onNavigate('aichat'); setSidebarOpen(false);}}><FaRobot className="bot-icon" /> <span>AIChat</span></button>
-          <button type="button" className="active" onClick={e => {e.preventDefault(); onNavigate('settings'); setSidebarOpen(false);}}><FaCog /> <span>Cilësimet</span></button>
-          <button type="button" onClick={e => {e.preventDefault(); onNavigate('help'); setSidebarOpen(false);}}><FaQuestionCircle /> <span>Ndihmë</span></button>
+          <button type="button" onClick={e => {e.preventDefault(); onNavigate('dashboard');}}><FaHome /> <span>Ballina</span></button>
+          <button type="button" onClick={e => {e.preventDefault(); onNavigate('transaksionet');}}><FaExchangeAlt /> <span>Transaksionet</span></button>
+          <button type="button" onClick={e => {e.preventDefault(); onNavigate('qellimet');}}><FaBullseye /> <span>Qëllimet</span></button>
+          <button type="button" onClick={e => {e.preventDefault(); onNavigate('aichat');}}><FaRobot className="bot-icon" /> <span>AIChat</span></button>
+          <button type="button" className="active" onClick={e => {e.preventDefault(); onNavigate('settings');}}><FaCog /> <span>Cilësimet</span></button>
+          <button type="button" onClick={e => {e.preventDefault(); onNavigate('help');}}><FaQuestionCircle /> <span>Ndihmë</span></button>
         </nav>
-        <button className="logout-btn" onClick={handleLogout}>Dil</button>
       </aside>
       
       {/* Main Content */}
@@ -316,16 +311,7 @@ export default function Settings({ currentPage, onNavigate, loggedInUser }) {
                     </button>
                   </div>
                   
-                  <div className="info-card">
-                    <div className="info-header">
-                      <FaBriefcase className="info-icon" />
-                      <span>Profesioni aktual</span>
-                    </div>
-                    <div className="info-value">{professionForm.profession}</div>
-                    <button className="info-action-btn" onClick={() => setShowProfessionModal(true)}>
-                      <FaEdit /> Ndrysho
-                    </button>
-                  </div>
+                  {/* Seksioni 'Profesioni aktual' u heq */}
                 </div>
                 
                 <div className="profile-actions">
@@ -727,52 +713,7 @@ export default function Settings({ currentPage, onNavigate, loggedInUser }) {
         </div>
       )}
 
-      {/* Modal për ndryshimin e profesionit */}
-      {showProfessionModal && (
-        <div className="modal-bg">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3>Ndrysho profesionin</h3>
-              <button className="modal-close-btn" onClick={() => setShowProfessionModal(false)}>
-                <FaTimes />
-              </button>
-            </div>
-            <form onSubmit={handleProfessionSubmit} className="modal-form">
-              <div className="form-group">
-                <label>Profesioni i ri:</label>
-                <select 
-                  value={professionForm.profession}
-                  onChange={(e) => setProfessionForm(prev => ({...prev, profession: e.target.value}))}
-                >
-                  <option value="Inxhinier Softueri">Inxhinier Softueri</option>
-                  <option value="Inxhinier Telekomunikacioni">Inxhinier Telekomunikacioni</option>
-                  <option value="Inxhinier Elektrik">Inxhinier Elektrik</option>
-                  <option value="Inxhinier Mekanik">Inxhinier Mekanik</option>
-                  <option value="Mesues/ Arsimtar/ Profesor">Mesues/ Arsimtar/ Profesor</option>
-                  <option value="Infermier/ Doktor/ Farmacist">Infermier/ Doktor/ Farmacist</option>
-                  <option value="Avokat">Avokat</option>
-                  <option value="Ekonomist">Ekonomist</option>
-                  <option value="Arkitekt">Arkitekt</option>
-                  <option value="Dizajner">Dizajner</option>
-                  <option value="Shitës">Shitës</option>
-                  <option value="Menaxher">Menaxher</option>
-                  <option value="Kontabilist / Financier">Kontabilist / Financier</option>
-                  <option value="Gazetar">Gazetar</option>
-                  <option value="Tjetër">Tjetër</option>
-                </select>
-              </div>
-              <div className="form-actions">
-                <button type="button" className="cancel-btn" onClick={() => setShowProfessionModal(false)}>
-                  Anulo
-                </button>
-                <button type="submit" className="submit-btn">
-                  Ruaj
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Modal i profesionit u heq */}
 
       {/* Modal për konfirmimin e daljes */}
       {showLogoutModal && (

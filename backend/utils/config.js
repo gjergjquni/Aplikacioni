@@ -89,11 +89,11 @@ const config = {
 
    // Konfigurimi i database (për të ardhmen)
     database: {
-    host: process.env.DB_HOST || 'localhost',
-    port: process.env.DB_PORT || 3306, 
-    name: process.env.DB_NAME || 'elioti_db',
-    user: process.env.DB_USER || 'elioti_user', 
-    password: process.env.DB_PASSWORD || ''
+    host: 'localhost',
+    port: 3306,
+    name: 'elioti_db',
+    user: 'elioti_user', 
+    password: 'mjgjt123'
     },
 
     // Konfigurimi i logging

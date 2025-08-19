@@ -20,6 +20,7 @@
   align-items: center; /* Qendërzimi horizontal */
   gap: 8px; /* Hapësira mes elementëve */
   margin-bottom: 12px; /* Margjina e poshtme */
+  text-align: center;
 }
 
 /* Titulli kryesor */
@@ -111,6 +112,8 @@
   font-weight: 600;
   min-width: 180px;
   text-align: center;
+  margin-left: auto;
+  margin-right: auto;
 }
 .transaksionet-pie-chart {
   display: flex;
@@ -162,13 +165,15 @@
 }
 
 .transaksionet-table-advanced-wrap {
-width: 100%;
-margin-bottom: 18px;
-border-radius: 10px;
-background: none;
-overflow-x: auto;
-box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-position: relative;
+  width: 100%;
+  margin-bottom: 18px;
+  border-radius: 10px;
+  background: none;
+  overflow-x: auto;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  position: relative;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* Custom scrollbar for table */
@@ -384,9 +389,88 @@ background: #ff7043;
   padding: 32px 0 24px 0;
   box-shadow: 2px 0 24px #0002;
   justify-content: flex-start;
+  transition: transform 0.3s ease, width 0.3s ease, padding 0.3s ease;
 }
+.sidebar-logo { cursor: pointer; }
+.sidebar.collapsed { width: 72px; min-width: 72px; padding: 16px 0; }
+.sidebar.collapsed .sidebar-menu { display: none; }
+.sidebar.collapsed .sidebar-logo img { width: 48px; height: 48px; }
 .sidebar-menu {
-  margin-bottom: 12px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 8px 0;
+}
+
+.sidebar-menu button {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 24px;
+  color: #eaf6fb;
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  font-weight: 600;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  margin-bottom: 8px;
+  position: relative;
+  overflow: hidden;
+}
+
+.sidebar-menu button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(29, 233, 182, 0.1), rgba(0, 184, 148, 0.1));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  border-radius: 12px;
+}
+
+.sidebar-menu button.active, .sidebar-menu button:focus {
+  background: linear-gradient(135deg, #1de9b6, #00b894);
+  color: #181a23;
+  font-weight: 700;
+  outline: none;
+  box-shadow: 0 4px 16px rgba(29, 233, 182, 0.3);
+  transform: translateX(4px);
+}
+
+.sidebar-menu button.active::before, .sidebar-menu button:focus::before {
+  opacity: 0;
+}
+
+.sidebar-menu button:hover {
+  background: rgba(0, 184, 148, 0.15);
+  color: #00b894;
+  transform: translateX(2px);
+  box-shadow: 0 2px 8px rgba(0, 184, 148, 0.2);
+}
+
+.sidebar-menu button:hover::before {
+  opacity: 1;
+}
+
+.sidebar-menu button span {
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.sidebar-menu .bot-icon {
+  font-size: 1.2em;
+  color: #74b9ff;
 }
 .dashboard-main {
   flex: 1;
@@ -397,9 +481,14 @@ background: #ff7043;
   min-height: 100vh;
   overflow-y: auto;
 }
+
+/* Adjust layout when sidebar collapsed */
+.sidebar.collapsed ~ .dashboard-main {
+  margin-left: 72px !important;
+}
 .sidebar-logo img {
-  width: 80px;
-  height: 80px;
+  width: 96px;
+  height: 96px;
   margin-bottom: 40px;
   filter: drop-shadow(0 2px 12px #00b89444);
 }

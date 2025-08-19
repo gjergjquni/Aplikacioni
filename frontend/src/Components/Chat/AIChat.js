@@ -8,6 +8,14 @@ const AIChat = ({ currentPage, onNavigate }) => {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
+
+  useEffect(() => {
+    const savedCollapsed = localStorage.getItem('sidebarCollapsed');
+    const savedOpen = localStorage.getItem('sidebarOpen');
+    if (savedCollapsed !== null) setIsCollapsed(savedCollapsed === 'true');
+    if (savedOpen !== null) setSidebarOpen(savedOpen === 'true');
+  }, []);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const messagesEndRef = useRef(null);
 
@@ -114,32 +122,30 @@ const AIChat = ({ currentPage, onNavigate }) => {
       {sidebarOpen && (
         <div 
           className="sidebar-overlay"
-          onClick={() => setSidebarOpen(false)}
         ></div>
       )}
 
       {/* Sidebar */}
-      <aside className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''}`}>
+      <aside className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''} ${isCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-header">
-          <div className="sidebar-logo">
+          <div className="sidebar-logo" onClick={() => setIsCollapsed(v => { const nv = !v; localStorage.setItem('sidebarCollapsed', String(nv)); return nv; })}>
             <img src={logo} alt="Logo" />
           </div>
           <button 
             className="sidebar-close-btn"
-            onClick={() => setSidebarOpen(false)}
+            onClick={() => { setSidebarOpen(false); localStorage.setItem('sidebarOpen', 'false'); }}
           >
             <FaTimes />
           </button>
         </div>
         <nav className="sidebar-menu">
-          <button type="button" onClick={e => {e.preventDefault(); onNavigate('dashboard'); setSidebarOpen(false);}}><FaHome /> <span>Ballina</span></button>
-          <button type="button" onClick={e => {e.preventDefault(); onNavigate('transaksionet'); setSidebarOpen(false);}}><FaExchangeAlt /> <span>Transaksionet</span></button>
-          <button type="button" onClick={e => {e.preventDefault(); onNavigate('qellimet'); setSidebarOpen(false);}}><FaBullseye /> <span>Qëllimet</span></button>
-          <button type="button" className="active" onClick={e => {e.preventDefault(); onNavigate('aichat'); setSidebarOpen(false);}}><FaRobot className="bot-icon" /> <span>AIChat</span></button>
-          <button type="button" onClick={e => {e.preventDefault(); onNavigate('settings'); setSidebarOpen(false);}}><FaCog /> <span>Settings</span></button>
-          <button type="button" onClick={e => {e.preventDefault(); onNavigate('help'); setSidebarOpen(false);}}><FaQuestionCircle /> <span>Ndihmë</span></button>
+          <button type="button" onClick={e => {e.preventDefault(); onNavigate('dashboard');}}><FaHome /> <span>Ballina</span></button>
+          <button type="button" onClick={e => {e.preventDefault(); onNavigate('transaksionet');}}><FaExchangeAlt /> <span>Transaksionet</span></button>
+          <button type="button" onClick={e => {e.preventDefault(); onNavigate('qellimet');}}><FaBullseye /> <span>Qëllimet</span></button>
+          <button type="button" className="active" onClick={e => {e.preventDefault(); onNavigate('aichat');}}><FaRobot className="bot-icon" /> <span>AIChat</span></button>
+          <button type="button" onClick={e => {e.preventDefault(); onNavigate('settings');}}><FaCog /> <span>Settings</span></button>
+          <button type="button" onClick={e => {e.preventDefault(); onNavigate('help');}}><FaQuestionCircle /> <span>Ndihmë</span></button>
         </nav>
-        <button className="logout-btn" onClick={() => setShowLogoutModal(true)}>Dil</button>
       </aside>
 
       {/* Main Content */}

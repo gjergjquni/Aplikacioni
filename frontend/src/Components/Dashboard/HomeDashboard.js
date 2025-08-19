@@ -1,7 +1,7 @@
 // Importimi i librarive të nevojshme nga React
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 // Importimi i ikonave nga react-icons për të përdorur në aplikacion
-import { FaWallet, FaArrowUp, FaArrowDown, FaBell, FaExclamationTriangle, FaPlus, FaTimes } from 'react-icons/fa';
+import { FaWallet, FaArrowUp, FaArrowDown, FaPlus, FaTimes } from 'react-icons/fa';
 import './HomeDashboard.css';
 import logo from '../../img/logo1.png';
 import { FaHome, FaExchangeAlt, FaBullseye, FaRobot, FaCog, FaQuestionCircle, FaBars } from 'react-icons/fa';
@@ -11,12 +11,7 @@ const fallbackName = '';
 
 
 
-// Njoftimet e sistemit - këto janë njoftime shembull
-const notifications = [
-  { type: 'warning', icon: <FaExclamationTriangle />, text: 'Pagesa e internetit skadon pas 2 ditësh.' },
-  { type: 'info', icon: <FaBell />, text: 'Keni një transaksion të pazakontë: -200€ në Argëtim.' },
-  { type: 'danger', icon: <FaExclamationTriangle />, text: 'Keni tejkaluar buxhetin për Ushqime këtë muaj.' },
-];
+// Nuk ka më njoftime statike; do të krijohen vetëm nga të dhënat reale
 
 // Komponenti kryesor i Dashboard-it të shtëpisë
 export default function HomeDashboard({ 
@@ -31,6 +26,20 @@ export default function HomeDashboard({
 }) {
   // State për të menaxhuar sidebar-in në mobile
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // State për kolapsimin/zgjerimin e sidebar-it në desktop (default: collapsed)
+  const [isCollapsed, setIsCollapsed] = useState(true);
+
+  // Persisto gjendjen e sidebar-it
+  useEffect(() => {
+    const savedCollapsed = localStorage.getItem('sidebarCollapsed');
+    const savedOpen = localStorage.getItem('sidebarOpen');
+    if (savedCollapsed !== null) {
+      setIsCollapsed(savedCollapsed === 'true');
+    }
+    if (savedOpen !== null) {
+      setSidebarOpen(savedOpen === 'true');
+    }
+  }, []);
   
   // State për të menaxhuar modal-in e shtimit të të ardhurave
   const [showIncomeModal, setShowIncomeModal] = useState(false);
@@ -198,32 +207,30 @@ export default function HomeDashboard({
       {sidebarOpen && (
         <div 
           className="sidebar-overlay"
-          onClick={() => setSidebarOpen(false)}
         ></div>
       )}
 
       {/* Sidebar */}
-      <aside className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''}`}>
+      <aside className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''} ${isCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-header">
-          <div className="sidebar-logo">
+          <div className="sidebar-logo" onClick={() => setIsCollapsed(v => { const nv = !v; localStorage.setItem('sidebarCollapsed', String(nv)); return nv; })}>
             <img src={logo} alt="Logo" />
           </div>
           <button 
             className="sidebar-close-btn"
-            onClick={() => setSidebarOpen(false)}
+            onClick={() => { setSidebarOpen(false); localStorage.setItem('sidebarOpen', 'false'); }}
           >
             <FaTimes />
           </button>
         </div>
         <nav className="sidebar-menu">
-          <button type="button" className="active" onClick={e => {e.preventDefault(); onNavigate('dashboard'); setSidebarOpen(false);}}><FaHome /> <span>Ballina</span></button>
-          <button type="button" onClick={e => {e.preventDefault(); onNavigate('transaksionet'); setSidebarOpen(false);}}><FaExchangeAlt /> <span>Transaksionet</span></button>
-          <button type="button" onClick={e => {e.preventDefault(); onNavigate('qellimet'); setSidebarOpen(false);}}><FaBullseye /> <span>Qëllimet</span></button>
-          <button type="button" onClick={e => {e.preventDefault(); onNavigate('aichat'); setSidebarOpen(false);}}><FaRobot className="bot-icon" /> <span>AIChat</span></button>
-          <button type="button" onClick={e => {e.preventDefault(); onNavigate('settings'); setSidebarOpen(false);}}><FaCog /> <span>Settings</span></button>
-          <button type="button" onClick={e => {e.preventDefault(); onNavigate('help'); setSidebarOpen(false);}}><FaQuestionCircle /> <span>Ndihmë</span></button>
+          <button type="button" className="active" onClick={e => {e.preventDefault(); onNavigate('dashboard');}}><FaHome /> <span>Ballina</span></button>
+          <button type="button" onClick={e => {e.preventDefault(); onNavigate('transaksionet');}}><FaExchangeAlt /> <span>Transaksionet</span></button>
+          <button type="button" onClick={e => {e.preventDefault(); onNavigate('qellimet');}}><FaBullseye /> <span>Qëllimet</span></button>
+          <button type="button" onClick={e => {e.preventDefault(); onNavigate('aichat');}}><FaRobot className="bot-icon" /> <span>AIChat</span></button>
+          <button type="button" onClick={e => {e.preventDefault(); onNavigate('settings');}}><FaCog /> <span>Settings</span></button>
+          <button type="button" onClick={e => {e.preventDefault(); onNavigate('help');}}><FaQuestionCircle /> <span>Ndihmë</span></button>
         </nav>
-                 <button className="logout-btn" onClick={() => setShowLogoutModal(true)}>Dil</button>
       </aside>
       
       {/* Main Content */}
@@ -323,20 +330,17 @@ export default function HomeDashboard({
 
             </div>
             <div className="compare-notify-section">
-              <div className={`compare-card ${expenseChange > 0 ? 'negative' : 'positive'}`}>
-                {expenseChange > 0 ? (
-                  <span>+{expenseChange}% më shumë shpenzime se muaji i kaluar</span>
-                ) : (
-                  <span>Keni kursyer më shumë këtë muaj!</span>
-                )}
-              </div>
+              {typeof expenseChange === 'number' && expenseChange !== 0 && (
+                <div className={`compare-card ${expenseChange > 0 ? 'negative' : 'positive'}`}>
+                  {expenseChange > 0 ? (
+                    <span>+{expenseChange}% më shumë shpenzime se muaji i kaluar</span>
+                  ) : (
+                    <span>{Math.abs(expenseChange)}% më pak shpenzime se muaji i kaluar</span>
+                  )}
+                </div>
+              )}
               <div className="notifications-list">
-                {notifications.map((n, i) => (
-                  <div key={i} className={`notification-card ${n.type}`}>
-                    <span className="notif-icon">{n.icon}</span>
-                    <span>{n.text}</span>
-                  </div>
-                ))}
+                {/* Njoftime vetëm kur gjenerohen nga të dhënat e përdoruesit */}
               </div>
             </div>
           </div>
