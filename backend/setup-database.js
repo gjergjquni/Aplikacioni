@@ -26,7 +26,7 @@ class DatabaseSetup {
             host: 'localhost',
             port: 3306,
             user: 'elioti_user',
-            password: 'mjgjt123',
+            password: 'Backendprogramming_12345@',
             database: 'elioti_db'
         };
         
