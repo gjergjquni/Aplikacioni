@@ -264,235 +264,228 @@ export default function Settings({ currentPage, onNavigate, loggedInUser }) {
           
           {/* Main Settings Grid */}
           <div className="settings-grid">
-            {/* Profile Section - Left Column */}
-            <div className="settings-column">
-              <section className="settings-section profile-section">
-                <div className="section-header">
-                  <div className="header-icon">
-                    <FaUser />
-                  </div>
-                  <div className="header-text">
-                    <h2>Profili</h2>
-                    <p>Informacionet personale dhe profesionale</p>
-                  </div>
+            {/* Profile Section */}
+            <section className="settings-section profile-section">
+              <div className="section-header">
+                <div className="header-icon">
+                  <FaUser />
                 </div>
-                
-                <div className="profile-info-grid">
-                  <div className="info-card">
-                    <div className="info-header">
-                      <FaUser className="info-icon" />
-                      <span>Emri dhe Mbiemri</span>
-                    </div>
-                    <div className="info-value">{nameForm.firstName} {nameForm.lastName}</div>
-                    <button className="info-action-btn" onClick={() => setShowNameModal(true)}>
-                      <FaEdit /> Ndrysho
-                    </button>
-                  </div>
-                  
-                  <div className="info-card">
-                    <div className="info-header">
-                      <FaGlobe className="info-icon" />
-                      <span>Email-i</span>
-                    </div>
-                    <div className="info-value">{emailForm.email}</div>
-                    <button className="info-action-btn" onClick={() => setShowEmailModal(true)}>
-                      <FaEdit /> Ndrysho
-                    </button>
-                  </div>
-                  
-                  <div className="info-card">
-                    <div className="info-header">
-                      <FaGraduationCap className="info-icon" />
-                      <span>Statusi i profesionit</span>
-                    </div>
-                    <div className="info-value">{statusForm.status}</div>
-                    <button className="info-action-btn" onClick={() => setShowStatusModal(true)}>
-                      <FaEdit /> Ndrysho
-                    </button>
-                  </div>
-                  
-                  {/* Seksioni 'Profesioni aktual' u heq */}
+                <div className="header-text">
+                  <h2>Profili</h2>
+                  <p>Informacionet personale dhe profesionale</p>
                 </div>
-                
-                <div className="profile-actions">
-                  <button className="action-btn primary" onClick={() => setShowPasswordModal(true)}>
-                    <FaEdit /> Ndrysho fjalëkalimin
+              </div>
+              
+              <div className="profile-info-grid">
+                <div className="info-card">
+                  <div className="info-header">
+                    <FaUser className="info-icon" />
+                    <span>Emri dhe Mbiemri</span>
+                  </div>
+                  <div className="info-value">{nameForm.firstName} {nameForm.lastName}</div>
+                  <button className="info-action-btn" onClick={() => setShowNameModal(true)}>
+                    <FaEdit /> Ndrysho
                   </button>
-                  <div className="action-buttons">
-                    <button className="action-btn warning" onClick={handleLogout}>
-                      <FaSignOutAlt /> Dil nga llogaria
-                    </button>
-                    <button className="action-btn danger" onClick={handleDeleteAccount}>
-                      <FaTrash /> Fshi llogarinë
-                    </button>
-                  </div>
                 </div>
-              </section>
-            </div>
+                
+                <div className="info-card">
+                  <div className="info-header">
+                    <FaGlobe className="info-icon" />
+                    <span>Email-i</span>
+                  </div>
+                  <div className="info-value">{emailForm.email}</div>
+                  <button className="info-action-btn" onClick={() => setShowEmailModal(true)}>
+                    <FaEdit /> Ndrysho
+                  </button>
+                </div>
+                
+                <div className="info-card">
+                  <div className="info-header">
+                    <FaGraduationCap className="info-icon" />
+                    <span>Statusi i profesionit</span>
+                  </div>
+                  <div className="info-value">{statusForm.status}</div>
+                  <button className="info-action-btn" onClick={() => setShowStatusModal(true)}>
+                    <FaEdit /> Ndrysho
+                  </button>
+                </div>
+              </div>
+              
+              <div className="profile-actions">
+                <button className="action-btn primary" onClick={() => setShowPasswordModal(true)}>
+                  <FaEdit /> Ndrysho fjalëkalimin
+                </button>
+                <div className="action-buttons">
+                  <button className="action-btn warning" onClick={handleLogout}>
+                    <FaSignOutAlt /> Dil nga llogaria
+                  </button>
+                  <button className="action-btn danger" onClick={handleDeleteAccount}>
+                    <FaTrash /> Fshi llogarinë
+                  </button>
+                </div>
+              </div>
+            </section>
             
-            {/* Right Column */}
-            <div className="settings-column">
-              {/* Preferences Section */}
-              <section className="settings-section preferences-section">
-                <div className="section-header">
-                  <div className="header-icon">
-                    <FaPalette />
-                  </div>
-                  <div className="header-text">
-                    <h2>Preferencat</h2>
-                    <p>Personalizoni përvojën tuaj</p>
-                  </div>
+            {/* Preferences Section */}
+            <section className="settings-section preferences-section">
+              <div className="section-header">
+                <div className="header-icon">
+                  <FaPalette />
                 </div>
-                
-                <div className="preferences-content">
-                  <div className="preference-item">
-                    <label>Gjuha</label>
-                    <div className="language-display">
-                      <span>Shqip</span>
-                    </div>
-                  </div>
-                  
-                  <div className="preference-item">
-                    <label>Stili i pamjes</label>
-                    <select 
-                      value={preferences.theme}
-                      onChange={(e) => handleThemeChange(e.target.value)}
-                    >
-                      <option value="Dritë">Dritë</option>
-                      <option value="Errët">Errët</option>
-                      <option value="Pamja fillestare">Pamja fillestare</option>
-                    </select>
-                  </div>
-                  
-                  <div className="preference-item">
-                    <label>Valuta</label>
-                    <select 
-                      value={preferences.currency}
-                      onChange={(e) => setPreferences(prev => ({...prev, currency: e.target.value}))}
-                    >
-                      <option value="€">€ (Euro)</option>
-                      <option value="L">L (Lekë)</option>
-                      <option value="$">$ (Dollar)</option>
-                    </select>
-                  </div>
+                <div className="header-text">
+                  <h2>Preferencat</h2>
+                  <p>Personalizoni përvojën tuaj</p>
                 </div>
-              </section>
+              </div>
               
-              {/* Notifications Section */}
-              <section className="settings-section notifications-section">
-                <div className="section-header">
-                  <div className="header-icon">
-                    <FaBell />
-                  </div>
-                  <div className="header-text">
-                    <h2>Njoftimet</h2>
-                    <p>Kontrolloni njoftimet që merrni</p>
+              <div className="preferences-content">
+                <div className="preference-item">
+                  <label>Gjuha</label>
+                  <div className="language-display">
+                    <span>Shqip</span>
                   </div>
                 </div>
                 
-                <div className="notifications-content">
-                  <div className="notification-item">
-                    <label>
-                      <input 
-                        type="checkbox" 
-                        checked={notifications.newTransactions}
-                        onChange={() => toggleNotification('newTransactions')}
-                      />
-                      <span>Transaksione të reja</span>
-                    </label>
-                    <div 
-                      className={`toggle-switch ${notifications.newTransactions ? 'on' : ''}`}
-                      onClick={() => toggleNotification('newTransactions')}
-                    ></div>
-                  </div>
-                  
-                  <div className="notification-item">
-                    <label>
-                      <input 
-                        type="checkbox" 
-                        checked={notifications.completedGoals}
-                        onChange={() => toggleNotification('completedGoals')}
-                      />
-                      <span>Qëllime të përmbushura</span>
-                    </label>
-                    <div 
-                      className={`toggle-switch ${notifications.completedGoals ? 'on' : ''}`}
-                      onClick={() => toggleNotification('completedGoals')}
-                    ></div>
-                  </div>
-                  
-                  <div className="notification-item">
-                    <label>
-                      <input 
-                        type="checkbox" 
-                        checked={notifications.budgetReminders}
-                        onChange={() => toggleNotification('budgetReminders')}
-                      />
-                      <span>Kujtesa për buxhetin</span>
-                    </label>
-                    <div 
-                      className={`toggle-switch ${notifications.budgetReminders ? 'on' : ''}`}
-                      onClick={() => toggleNotification('budgetReminders')}
-                    ></div>
-                  </div>
-                  
-                  <div className="notification-item">
-                    <label>
-                      <input 
-                        type="checkbox" 
-                        checked={notifications.aiSuggestions}
-                        onChange={() => toggleNotification('aiSuggestions')}
-                      />
-                      <span>Sugjerime nga AI</span>
-                    </label>
-                    <div 
-                      className={`toggle-switch ${notifications.aiSuggestions ? 'on' : ''}`}
-                      onClick={() => toggleNotification('aiSuggestions')}
-                    ></div>
-                  </div>
-                  
-                  <div className="notification-item">
-                    <label>
-                      <input 
-                        type="checkbox" 
-                        checked={notifications.appNotifications}
-                        onChange={() => toggleNotification('appNotifications')}
-                      />
-                      <span>Njoftime të aplikacionit</span>
-                    </label>
-                    <div 
-                      className={`toggle-switch ${notifications.appNotifications ? 'on' : ''}`}
-                      onClick={() => toggleNotification('appNotifications')}
-                    ></div>
-                  </div>
-                </div>
-              </section>
-              
-              {/* Other Section */}
-              <section className="settings-section other-section">
-                <div className="section-header">
-                  <div className="header-icon">
-                    <FaCog />
-                  </div>
-                  <div className="header-text">
-                    <h2>Të tjera</h2>
-                    <p>Opsione shtesë</p>
-                  </div>
-                </div>
-                
-                <div className="other-content">
-                  <button 
-                    className="about-btn"
-                    onClick={() => {
-                      console.log('About button clicked from Other section');
-                      setShowAboutModal(true);
-                    }}
+                <div className="preference-item">
+                  <label>Stili i pamjes</label>
+                  <select 
+                    value={preferences.theme}
+                    onChange={(e) => handleThemeChange(e.target.value)}
                   >
-                    <FaInfoCircle /> Rreth aplikacionit
-                  </button>
+                    <option value="Dritë">Dritë</option>
+                    <option value="Errët">Errët</option>
+                    <option value="Pamja fillestare">Pamja fillestare</option>
+                  </select>
                 </div>
-              </section>
-            </div>
+                
+                <div className="preference-item">
+                  <label>Valuta</label>
+                  <select 
+                    value={preferences.currency}
+                    onChange={(e) => setPreferences(prev => ({...prev, currency: e.target.value}))}
+                  >
+                    <option value="€">€ (Euro)</option>
+                    <option value="L">L (Lekë)</option>
+                    <option value="$">$ (Dollar)</option>
+                  </select>
+                </div>
+              </div>
+            </section>
+            
+            {/* Notifications Section */}
+            <section className="settings-section notifications-section">
+              <div className="section-header">
+                <div className="header-icon">
+                  <FaBell />
+                </div>
+                <div className="header-text">
+                  <h2>Njoftimet</h2>
+                  <p>Kontrolloni njoftimet që merrni</p>
+                </div>
+              </div>
+              
+              <div className="notifications-content">
+                <div className="notification-item">
+                  <label>
+                    <input 
+                      type="checkbox" 
+                      checked={notifications.newTransactions}
+                      onChange={() => toggleNotification('newTransactions')}
+                    />
+                    <span>Transaksione të reja</span>
+                  </label>
+                  <div 
+                    className={`toggle-switch ${notifications.newTransactions ? 'on' : ''}`}
+                    onClick={() => toggleNotification('newTransactions')}
+                  ></div>
+                </div>
+                
+                <div className="notification-item">
+                  <label>
+                    <input 
+                      type="checkbox" 
+                      checked={notifications.completedGoals}
+                      onChange={() => toggleNotification('completedGoals')}
+                    />
+                    <span>Qëllime të përmbushura</span>
+                  </label>
+                  <div 
+                    className={`toggle-switch ${notifications.completedGoals ? 'on' : ''}`}
+                    onClick={() => toggleNotification('completedGoals')}
+                  ></div>
+                </div>
+                
+                <div className="notification-item">
+                  <label>
+                    <input 
+                      type="checkbox" 
+                      checked={notifications.budgetReminders}
+                      onChange={() => toggleNotification('budgetReminders')}
+                    />
+                    <span>Kujtesa për buxhetin</span>
+                  </label>
+                  <div 
+                    className={`toggle-switch ${notifications.budgetReminders ? 'on' : ''}`}
+                    onClick={() => toggleNotification('budgetReminders')}
+                  ></div>
+                </div>
+                
+                <div className="notification-item">
+                  <label>
+                    <input 
+                      type="checkbox" 
+                      checked={notifications.aiSuggestions}
+                      onChange={() => toggleNotification('aiSuggestions')}
+                    />
+                    <span>Sugjerime nga AI</span>
+                  </label>
+                  <div 
+                    className={`toggle-switch ${notifications.aiSuggestions ? 'on' : ''}`}
+                    onClick={() => toggleNotification('aiSuggestions')}
+                  ></div>
+                </div>
+                
+                <div className="notification-item">
+                  <label>
+                    <input 
+                      type="checkbox" 
+                      checked={notifications.appNotifications}
+                      onChange={() => toggleNotification('appNotifications')}
+                    />
+                    <span>Njoftime të aplikacionit</span>
+                  </label>
+                  <div 
+                    className={`toggle-switch ${notifications.appNotifications ? 'on' : ''}`}
+                    onClick={() => toggleNotification('appNotifications')}
+                  ></div>
+                </div>
+              </div>
+            </section>
+            
+            {/* Other Section */}
+            <section className="settings-section other-section">
+              <div className="section-header">
+                <div className="header-icon">
+                  <FaCog />
+                </div>
+                <div className="header-text">
+                  <h2>Të tjera</h2>
+                  <p>Opsione shtesë</p>
+                </div>
+              </div>
+              
+              <div className="other-content">
+                <button 
+                  className="about-btn"
+                  onClick={() => {
+                    console.log('About button clicked from Other section');
+                    setShowAboutModal(true);
+                  }}
+                >
+                  <FaInfoCircle /> Rreth aplikacionit
+                </button>
+              </div>
+            </section>
           </div>
         </div>
       </main>
