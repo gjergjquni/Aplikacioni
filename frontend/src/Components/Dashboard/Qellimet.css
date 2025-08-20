@@ -70,8 +70,8 @@
 /* Statistika */
 .qellimet-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
   width: 100%;
   margin-bottom: 24px;
   justify-items: center;
@@ -80,9 +80,14 @@
 .stat-card {
   background: #23243a;
   border-radius: 12px;
-  padding: 20px;
+  padding: 24px 20px;
   text-align: center;
   transition: transform 0.2s ease;
+  min-height: 100px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
 }
 
 .stat-card:hover {
@@ -90,15 +95,15 @@
 }
 
 .stat-value {
-  font-size: 1.8rem;
+  font-size: 2rem;
   font-weight: 700;
   color: #1de9b6;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .stat-label {
   color: #b2dfdb;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-weight: 500;
 }
 
@@ -107,10 +112,11 @@
   background: #23243a;
   border-radius: 12px;
   padding: 20px;
-  width: 100%;
-  margin-bottom: 24px;
-  margin-left: auto;
-  margin-right: auto;
+  width: 70%;
+  margin: 0 auto 24px auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .progress-header {
@@ -120,6 +126,7 @@
   margin-bottom: 12px;
   font-weight: 600;
   color: #eaf6f7;
+  width: 100%;
 }
 
 .progress-bar {
@@ -345,8 +352,13 @@
   text-align: center;
   padding: 60px 20px;
   color: #b2dfdb;
-  margin-left: auto;
-  margin-right: auto;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  width: 100%;
 }
 
 .empty-icon {
@@ -363,6 +375,10 @@
 .qellimet-empty p {
   margin: 0 0 24px 0;
   font-size: 1.1rem;
+}
+
+.qellimet-empty .add-btn {
+  margin: 0 auto;
 }
 
 /* Modal */
@@ -830,7 +846,7 @@
   
   .qellimet-stats {
     grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
+    gap: 12px;
   }
   
   .qellimet-grid {
@@ -838,30 +854,40 @@
   }
   
   .stat-card {
-    padding: 18px 16px;
+    padding: 20px 16px;
+    min-height: 90px;
   }
   
   .stat-value {
-    font-size: 1.6rem;
+    font-size: 1.7rem;
   }
   
   .stat-label {
-    font-size: 0.85rem;
+    font-size: 0.9rem;
+  }
+  
+  .qellimet-total-progress {
+    width: 80%;
   }
 }
 
 @media (max-width: 900px) {
   .qellimet-stats {
     grid-template-columns: repeat(2, 1fr);
-    gap: 14px;
+    gap: 12px;
   }
   
   .stat-card {
-    padding: 16px 14px;
+    padding: 18px 14px;
+    min-height: 85px;
   }
   
   .stat-value {
-    font-size: 1.5rem;
+    font-size: 1.6rem;
+  }
+  
+  .qellimet-total-progress {
+    width: 85%;
   }
 }
 
@@ -872,15 +898,20 @@
   }
   
   .stat-card {
-    padding: 14px 12px;
+    padding: 16px 12px;
+    min-height: 80px;
   }
   
   .stat-value {
-    font-size: 1.3rem;
+    font-size: 1.4rem;
   }
   
   .stat-label {
-    font-size: 0.75rem;
+    font-size: 0.8rem;
+  }
+  
+  .qellimet-total-progress {
+    width: 85%;
   }
 }
 
@@ -906,15 +937,16 @@
   }
   
   .stat-card {
-    padding: 16px 12px;
+    padding: 18px 12px;
+    min-height: 85px;
   }
   
   .stat-value {
-    font-size: 1.4rem;
+    font-size: 1.5rem;
   }
   
   .stat-label {
-    font-size: 0.8rem;
+    font-size: 0.85rem;
   }
   
   .qellimet-header h2 {
@@ -923,6 +955,10 @@
   
   .qellimet-desc {
     font-size: 1rem;
+  }
+  
+  .qellimet-total-progress {
+    width: 75%;
   }
 }
 
@@ -983,11 +1019,12 @@
   }
   
   .stat-card {
-    padding: 16px;
+    padding: 18px 16px;
+    min-height: 80px;
   }
   
   .stat-value {
-    font-size: 1.5rem;
+    font-size: 1.6rem;
   }
   
   .qellim-card {
@@ -1007,6 +1044,14 @@
   .modal-content {
     width: 95%;
     padding: 24px;
+  }
+  
+  .qellimet-total-progress {
+    width: 90%;
+  }
+  
+  .qellimet-empty {
+    min-height: 350px;
   }
 }
 
@@ -1041,11 +1086,12 @@
   }
   
   .stat-card {
-    padding: 14px;
+    padding: 16px 14px;
+    min-height: 75px;
   }
   
   .stat-value {
-    font-size: 1.3rem;
+    font-size: 1.4rem;
   }
   
   .qellim-card {
@@ -1070,5 +1116,14 @@
   .sidebar {
     width: 260px;
     padding: 20px;
+  }
+  
+  .qellimet-total-progress {
+    width: 95%;
+  }
+  
+  .qellimet-empty {
+    min-height: 300px;
+    padding: 40px 20px;
   }
 } 
