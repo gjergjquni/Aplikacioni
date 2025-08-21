@@ -5,6 +5,8 @@ import './AuthLayout.css';
 // Importimi i ikonave
 import emailIcon from '../../img/email-icon-removebg-preview.png';
 import userIcon from '../../img/user.icon.png';
+// Importimi i komponentit të fjalëkalimit
+import PasswordInput from './PasswordInput';
 
 // Komponenti i formularit të regjistrimit
 function RegisterForm({ onSwitch }) {
@@ -191,66 +193,22 @@ function RegisterForm({ onSwitch }) {
       </div>
 
       {/* Kontenieri për input-in e fjalëkalimit */}
-      <div style={{position: 'relative', marginBottom: isMobile ? 6 : 12}}>
-        {/* Ikona e fjalëkalimit */}
-        <span className="input-icon" style={{
-          left: isMobile ? 8 : 14, 
-          top: '40%', 
-          position: 'absolute', 
-          transform: 'translateY(-50%)', 
-          display: 'flex', 
-          alignItems: 'center', 
-          height: isMobile ? 36 : 44
-        }}>
-          {/* Lock SVG */}
-          <svg width={isMobile ? 18 : 22} height={isMobile ? 18 : 22} viewBox="0 0 24 24" fill="none" style={{filter: 'brightness(0) invert(1)'}}>
-            <path d="M17 11V7a5 5 0 10-10 0v4" stroke="#00eaff" strokeWidth="1.5"/>
-            <rect x="5" y="11" width="14" height="9" rx="2.5" stroke="#00eaff" strokeWidth="1.5"/>
-            <circle cx="12" cy="15.5" r="1.5" fill="#00eaff"/>
-          </svg>
-        </span>
-        {/* Input-i për fjalëkalimin */}
-        <input
-          className="login-input"
-          type="password"
-          placeholder="Fjalëkalimi"
-          value={password}
-          onChange={e => setPassword(e.target.value)} // Përditëson state-in
-          required // Fusha e detyrueshme
-          style={isMobile ? {paddingLeft: 36, height: 36} : {paddingLeft: 44, height: 44}} // Stilet për të lënë vend për ikonën
-        />
-      </div>
+      <PasswordInput
+        value={password}
+        onChange={e => setPassword(e.target.value)}
+        placeholder="Fjalëkalimi"
+        required
+        isMobile={isMobile}
+      />
       
       {/* Kontenieri për konfirmimin e fjalëkalimit */}
-      <div style={{position: 'relative', marginBottom: isMobile ? 6 : 12}}>
-        {/* Ikona e fjalëkalimit */}
-        <span className="input-icon" style={{
-          left: isMobile ? 8 : 14, 
-          top: '40%', 
-          position: 'absolute', 
-          transform: 'translateY(-50%)', 
-          display: 'flex', 
-          alignItems: 'center', 
-          height: isMobile ? 36 : 44
-        }}>
-          {/* Lock SVG */}
-          <svg width={isMobile ? 18 : 22} height={isMobile ? 18 : 22} viewBox="0 0 24 24" fill="none" style={{filter: 'brightness(0) invert(1)'}}>
-            <path d="M17 11V7a5 5 0 10-10 0v4" stroke="#00eaff" strokeWidth="1.5"/>
-            <rect x="5" y="11" width="14" height="9" rx="2.5" stroke="#00eaff" strokeWidth="1.5"/>
-            <circle cx="12" cy="15.5" r="1.5" fill="#00eaff"/>
-          </svg>
-        </span>
-        {/* Input-i për konfirmimin e fjalëkalimit */}
-        <input
-          className="login-input"
-          type="password"
-          placeholder="Konfirmo fjalëkalimin"
-          value={confirmPassword}
-          onChange={e => setConfirmPassword(e.target.value)} // Përditëson state-in
-          required // Fusha e detyrueshme
-          style={isMobile ? {paddingLeft: 36, height: 36} : {paddingLeft: 44, height: 44}} // Stilet për të lënë vend për ikonën
-        />
-      </div>
+      <PasswordInput
+        value={confirmPassword}
+        onChange={e => setConfirmPassword(e.target.value)}
+        placeholder="Konfirmo fjalëkalimin"
+        required
+        isMobile={isMobile}
+      />
       
       {/* Butoni kryesor për të bërë regjistrim */}
       <button type="submit" style={{
