@@ -1,13 +1,14 @@
+// backend/routes/authRoutes.js
 
 const bcrypt = require('bcrypt');
-const crypto = require('crypto'); // We need crypto for the password reset token
+const crypto = require('crypto');
 const Validators = require('../utils/validators');
 const ErrorHandler = require('../middleware/errorHandler');
 const config = require('../utils/config');
+const BaseRoutes = require('./BaseRoutes');
 
-class AuthRoutes {
+class AuthRoutes extends BaseRoutes {
     async handle(req, res, context) {
-        // You will need to pass emailService from server.js to the context
         const { sessionManager, databaseManager, parsedUrl, emailService } = context;
         const pathname = parsedUrl.pathname;
         const method = req.method.toUpperCase();
@@ -24,11 +25,9 @@ class AuthRoutes {
                 case '/auth/login':
                     return await this.login(req, res, { sessionManager, databaseManager });
 
-                // --- NEW: Handles the request from the "Forgot Password" form ---
                 case '/auth/forgot-password':
                     return await this.forgotPassword(req, res, { databaseManager, emailService });
 
-                // --- NEW: Handles the request from the link sent to the user's email ---
                 case '/auth/reset-password':
                     return await this.resetPassword(req, res, { databaseManager });
 
@@ -51,10 +50,13 @@ class AuthRoutes {
 
             const emailValidation = Validators.validateEmail(email);
             if (!emailValidation.valid) return this.sendError(res, 400, emailValidation.message);
+            
             const passwordValidation = Validators.validatePassword(password);
             if (!passwordValidation.valid) return this.sendError(res, 400, passwordValidation.message);
+            
             const nameValidation = Validators.validateName(fullName);
             if (!nameValidation.valid) return this.sendError(res, 400, nameValidation.message);
+            
             const dobValidation = Validators.validateDateOfBirth(day, month, year);
             if (!dobValidation.valid) return this.sendError(res, 400, dobValidation.message);
             
@@ -91,19 +93,31 @@ class AuthRoutes {
                 return this.sendError(res, 400, emailValidation.message);
             }
 
+            // Step 1: Find the user by their email address.
             const user = await databaseManager.get(
                 'SELECT * FROM users WHERE email = ?',
                 [emailValidation.sanitized]
             );
 
-            if (!user || !(await bcrypt.compare(password, user.password_hash))) {
+            // Step 2: **CRITICAL CHECK** - If no user is found, send a 401 Unauthorized error.
+            if (!user) {
                 return this.sendError(res, 401, 'Invalid email or password');
             }
             
+            // Step 3: If the user was found, now compare the provided password with the hashed password in the database.
+            const isPasswordMatch = await bcrypt.compare(password, user.password_hash);
+
+            // Step 4: **CRITICAL CHECK** - If the passwords do not match, send a 401 Unauthorized error.
+            if (!isPasswordMatch) {
+                return this.sendError(res, 401, 'Invalid email or password');
+            }
+            
+            // Step 5: Check if the user's account is active.
             if (!user.is_active) {
                 return this.sendError(res, 403, 'Account is deactivated');
             }
 
+            // --- If all checks pass, the user is valid. Proceed with creating a session. ---
             await databaseManager.run('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?', [user.id]);
             const session = sessionManager.createSession(user.id, user.email);
 
@@ -123,7 +137,6 @@ class AuthRoutes {
         }
     }
 
-    // --- NEW METHOD: Handles the "Forgot Password" request ---
     async forgotPassword(req, res, { databaseManager, emailService }) {
         const { email } = req.body;
         if (!email) {
@@ -133,7 +146,6 @@ class AuthRoutes {
         const user = await databaseManager.get('SELECT id FROM users WHERE email = ?', [email]);
         
         if (user) {
-            // Only proceed if the user actually exists
             const token = crypto.randomBytes(32).toString('hex');
             const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
             const expiresAt = new Date(Date.now() + 3600000); // 1 hour expiry
@@ -143,16 +155,12 @@ class AuthRoutes {
                 [email, tokenHash, expiresAt]
             );
 
-            // Send the original, un-hashed token to the user via email
             await emailService.sendPasswordResetLink(email, token);
         }
 
-        // Security: Always return a success message to prevent attackers
-        // from discovering which emails are registered in your system.
         return this.sendSuccess(res, 200, { message: 'If an account with that email exists, a password reset link has been sent.' });
     }
 
-    // --- NEW METHOD: Handles the actual password reset from the email link ---
     async resetPassword(req, res, { databaseManager }) {
         const { token, email, password } = req.body;
 
@@ -178,17 +186,6 @@ class AuthRoutes {
         await databaseManager.run('DELETE FROM password_resets WHERE email = ?', [email]);
 
         return this.sendSuccess(res, 200, { message: 'Password has been reset successfully.' });
-    }
-
-    // --- HELPER METHODS ---
-    sendSuccess(res, statusCode, data) {
-        res.writeHead(statusCode, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: true, ...data, timestamp: new Date().toISOString() }));
-    }
-
-    sendError(res, statusCode, message) {
-        res.writeHead(statusCode, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: false, error: { message, code: statusCode, timestamp: new Date().toISOString() } }));
     }
 }
 
