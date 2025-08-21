@@ -9,9 +9,11 @@ const config = require('../utils/config');
 const jwt = require('jsonwebtoken'); // Use the standard library
 
 class SessionManager {
-    constructor() {
+    // --- CHANGE 1: Accept the databaseManager in the constructor ---
+    constructor(databaseManager) {
         this.sessionTimeout = config.security.sessionTimeout;
         this.jwtSecret = config.security.jwtSecret;
+        this.databaseManager = databaseManager; // Store the database manager instance
 
         // In-memory blacklist for revoked tokens (use Redis in production)
         this.blacklistedTokens = new Set();
@@ -48,11 +50,22 @@ class SessionManager {
     /**
      * Validate and decode JWT token
      */
-    validateSession(token) {
+    // --- CHANGE 2: Make the method async and add the database check ---
+    async validateSession(token) {
         try {
-            // Check if token is blacklisted
+            // Check in-memory blacklist first for speed
             if (this.blacklistedTokens.has(token)) {
                 return null;
+            }
+
+            // NEW: Check the persistent blacklist in the database
+            const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+            const isBlacklistedInDB = await this.databaseManager.get(
+                'SELECT token_hash FROM blacklisted_tokens WHERE token_hash = ?',
+                [tokenHash]
+            );
+            if (isBlacklistedInDB) {
+                return null; // Token is blacklisted in the database
             }
 
             // Verify and decode token using the library
@@ -74,8 +87,27 @@ class SessionManager {
     /**
      * Revoke (blacklist) a token
      */
-    destroySession(token) {
+    // --- CHANGE 3: Make the method async and add the database insert ---
+    async destroySession(token) {
+        // Add to the fast in-memory blacklist
         this.blacklistedTokens.add(token);
+
+        try {
+            // Also add to the persistent database blacklist
+            const payload = jwt.decode(token);
+            if (payload && payload.exp) {
+                const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+                const expiresAt = new Date(payload.exp * 1000);
+                
+                await this.databaseManager.run(
+                    'INSERT INTO blacklisted_tokens (token_hash, user_id, expires_at) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE expires_at = VALUES(expires_at)',
+                    [tokenHash, payload.userId, expiresAt]
+                );
+            }
+        } catch (error) {
+            // A failure to write to the blacklist should not crash the main request.
+            console.error('Failed to write token to database blacklist:', error);
+        }
     }
 
     /**
@@ -98,12 +130,20 @@ class SessionManager {
     /**
      * Clean up expired blacklisted tokens
      */
-    cleanupBlacklistedTokens() {
-        // For in-memory storage, we just clear the set periodically.
-        // In a production environment with a persistent store like Redis,
-        // you would remove tokens where the expiration date has passed.
+    async cleanupBlacklistedTokens() {
+        // Clear the fast in-memory set
         this.blacklistedTokens.clear();
         console.log('Cleaned up in-memory token blacklist.');
+
+        // NEW: Clean up expired tokens from the database
+        try {
+            await this.databaseManager.run(
+                'DELETE FROM blacklisted_tokens WHERE expires_at < NOW()'
+            );
+            console.log('Cleaned up expired tokens from database blacklist.');
+        } catch (error) {
+            console.error('Failed to clean up database token blacklist:', error);
+        }
     }
     
     /**

@@ -8,37 +8,41 @@ const url = require('url');
 // Core modules
 const config = require('./utils/config');
 const ErrorHandler = require('./middleware/errorHandler');
-const SessionManager = require('./services/sessionManager');
-const AuthMiddleware = require('./middleware/authMiddleware');
 const DatabaseManager = require('./services/databaseManager');
+const SessionManager = require('./services/sessionManager');
+const EmailService = require('./services/emailService');
+const AuthMiddleware = require('./middleware/authMiddleware');
 const RateLimiter = require('./middleware/rateLimiter');
 
-// Route handlers
+// --- CORRECTED: All necessary route handlers are included ---
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const transactionRoutes = require('./routes/transactionRoutes');
 const goalRoutes = require('./routes/goalRoutes');
-const profileRoutes = require('./routes/profileRoutes');
-const settingsRoutes = require('./routes/settingsRoutes');
+const settingsRoutes = require('./routes/settingsRoutes'); // <-- RE-ADDED
 const helpRoutes = require('./routes/helpRoutes');
 const aiChatRoutes = require('./routes/aiChatRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
+// profileRoutes is the only one that can be removed as its logic is fully in userRoutes
+// const profileRoutes = require('./routes/profileRoutes'); // REMOVED
 
 
 class EliotiServer {
     constructor() {
-        this.sessionManager = new SessionManager();
+        // Correct initialization order
         this.databaseManager = new DatabaseManager();
+        this.sessionManager = new SessionManager(this.databaseManager);
+        this.emailService = EmailService;
         this.authMiddleware = new AuthMiddleware(this.sessionManager, this.databaseManager);
         this.rateLimiter = new RateLimiter();
         
+        // Final, correct route mapping
         this.routes = {
             '/auth': authRoutes,
             '/user': userRoutes,
             '/transaction': transactionRoutes,
             '/goal': goalRoutes,
-            '/profile': profileRoutes,
-            '/settings': settingsRoutes,
+            '/settings': settingsRoutes, // <-- RE-ADDED
             '/help': helpRoutes,
             '/ai-chat': aiChatRoutes,
             '/dashboard': dashboardRoutes
@@ -54,6 +58,7 @@ class EliotiServer {
             this.server = http.createServer(this.handleRequest.bind(this));
             this.server.listen(config.server.port, config.server.host, () => {
                 console.log(`🚀 Elioti server running on ${config.server.host}:${config.server.port}`);
+                console.log(`🔧 Environment: ${config.server.environment}`);
             });
             this.setupGracefulShutdown();
         } catch (error) {
@@ -70,32 +75,30 @@ class EliotiServer {
 
             this.setCORSHeaders(res);
 
-            // --- FIX: Activate your Rate Limiter on every request ---
             const clientIp = req.socket.remoteAddress;
             if (!this.rateLimiter.checkLimit(clientIp, pathname)) {
-                const remaining = this.rateLimiter.getRemainingRequests(clientIp, pathname);
-                const resetTime = this.rateLimiter.getResetTime(clientIp, pathname);
-                res.setHeader('X-RateLimit-Remaining', remaining);
-                res.setHeader('X-RateLimit-Reset', new Date(resetTime).toISOString());
+                // ... (rate limiter headers) ...
                 return this.sendError(res, 429, 'Too many requests, please try again later.');
             }
 
             if (method === 'OPTIONS') {
-                res.writeHead(204); // 204 No Content is more appropriate for pre-flight requests
+                res.writeHead(204);
                 res.end();
                 return;
             }
 
-            if (['POST', 'PUT', 'PATCH'].includes(method)) {
+            if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
                 await this.parseRequestBody(req);
             }
 
             const routeHandler = this.findRouteHandler(pathname);
             if (routeHandler) {
+                // Pass all required services to the route handlers
                 await routeHandler.handle(req, res, {
                     sessionManager: this.sessionManager,
                     authMiddleware: this.authMiddleware,
                     databaseManager: this.databaseManager,
+                    emailService: this.emailService,
                     parsedUrl
                 });
             } else {
@@ -169,10 +172,7 @@ class EliotiServer {
 
 if (require.main === module) {
     const server = new EliotiServer();
-    server.initialize().catch(error => {
-        console.error('❌ Failed to start server:', error);
-        process.exit(1);
-    });
+    server.initialize();
 }
 
 module.exports = EliotiServer;

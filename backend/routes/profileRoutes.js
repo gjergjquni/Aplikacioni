@@ -1,4 +1,4 @@
-// profileRoutes.js
+
 
 const Validators = require('../utils/validators');
 const ErrorHandler = require('../middleware/errorHandler');
