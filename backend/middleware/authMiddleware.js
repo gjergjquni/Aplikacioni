@@ -1,45 +1,49 @@
-/**
- * Authentication Middleware for JWT-based security
- * Handles token validation, user authentication, and authorization
- */
+// backend/middleware/authMiddleware.js
 
 const ErrorHandler = require('./errorHandler');
 const config = require('../utils/config');
+// We need BaseRoutes to inherit the sendError method
+const BaseRoutes = require('../routes/BaseRoutes'); 
 
-class AuthMiddleware {
+class AuthMiddleware extends BaseRoutes {
     constructor(sessionManager, databaseManager) {
+        super(); // Call the BaseRoutes constructor
         this.sessionManager = sessionManager;
-        this.databaseManager = databaseManager; // Receives the database manager
+        this.databaseManager = databaseManager;
     }
 
     /**
      * Middleware to require basic authentication.
      * It checks for a valid token and attaches the user to the request.
+     * This function is now async to handle the async validateSession method.
      */
-    requireAuth(req, res, next) {
+    async requireAuth(req, res, next) {
         try {
             const token = this.extractToken(req);
             if (!token) {
-                return this.sendAuthError(res, 'Authentication required', 'NO_TOKEN');
+                // Using this.sendError inherited from BaseRoutes for consistency
+                return this.sendError(res, 401, 'Authentication required');
             }
 
-            const session = this.sessionManager.validateSession(token);
+            // Await the session validation since it now checks the database
+            const session = await this.sessionManager.validateSession(token);
             if (!session) {
-                return this.sendAuthError(res, 'Token expired or invalid', 'INVALID_TOKEN');
+                return this.sendError(res, 401, 'Token expired or invalid');
             }
 
+            // Attach user object to the request
             req.user = {
                 userId: session.userId,
                 email: session.email,
                 token: token
             };
 
-            // Proceed to the next function in the chain (like requireAdmin or the final route handler)
+            // Proceed to the next function in the chain (the actual route handler)
             next();
 
         } catch (error) {
             ErrorHandler.logError(error, req);
-            return this.sendAuthError(res, 'Authentication failed', 'AUTH_ERROR');
+            return this.sendError(res, 500, 'Authentication failed');
         }
     }
 
@@ -48,16 +52,17 @@ class AuthMiddleware {
      * This should be used AFTER requireAuth.
      */
     requireAdmin(req, res, next) {
+        // We call this.requireAuth and pass the admin check logic as the 'next' function
         this.requireAuth(req, res, async () => {
             try {
                 const isAdmin = await this.checkAdminRole(req.user.userId);
                 if (!isAdmin) {
-                    return this.sendAuthError(res, 'Admin privileges required', 'ADMIN_REQUIRED', 403);
+                    return this.sendError(res, 403, 'Admin privileges required');
                 }
-                next();
+                next(); // If admin, proceed to the actual route handler
             } catch (error) {
                 ErrorHandler.logError(error, req);
-                return this.sendAuthError(res, 'Authorization check failed', 'AUTH_CHECK_ERROR');
+                return this.sendError(res, 500, 'Authorization check failed');
             }
         });
     }
@@ -67,21 +72,21 @@ class AuthMiddleware {
      * Checks if the logged-in user's ID matches the target user ID in the request.
      */
     requireOwnership(req, res, next) {
-        this.requireAuth(req, res, () => {
+        this.requireAuth(req, res, async () => {
             const targetUserId = req.params.userId || req.body.userId || req.query.userId;
             if (!targetUserId) {
-                return this.sendAuthError(res, 'User ID required for ownership check', 'MISSING_USER_ID', 400);
+                return this.sendError(res, 400, 'User ID required for ownership check');
             }
 
             if (req.user.userId !== targetUserId) {
-                this.databaseManager.logAuditEvent(
+                await this.databaseManager.logAuditEvent(
                     req.user.userId,
                     'UNAUTHORIZED_ACCESS',
                     `User attempted to access resource belonging to ${targetUserId}`,
                     req
                 ).catch(err => console.error('Failed to log unauthorized access:', err));
 
-                return this.sendAuthError(res, 'Access denied', 'ACCESS_DENIED', 403);
+                return this.sendError(res, 403, 'Access denied');
             }
             
             next();
@@ -90,15 +95,12 @@ class AuthMiddleware {
 
     /**
      * Checks the database to see if a user has the 'admin' role.
-     * This is a helper function used by requireAdmin.
      */
     async checkAdminRole(userId) {
         if (!this.databaseManager) {
             return false;
         }
         try {
-            // Note: This assumes you have a 'role' column in your 'users' table.
-            // You may need to add this column to your schema in DatabaseManager.js
             const user = await this.databaseManager.get(
                 'SELECT role FROM users WHERE id = ? AND is_active = 1',
                 [userId]
@@ -124,20 +126,8 @@ class AuthMiddleware {
         return null;
     }
 
-    /**
-     * Sends a standardized authentication error response.
-     */
-    sendAuthError(res, message, errorCode, statusCode = 401) {
-        res.writeHead(statusCode, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-            success: false,
-            error: {
-                message: message,
-                code: errorCode,
-                timestamp: new Date().toISOString()
-            }
-        }));
-    }
+    // The sendAuthError method is no longer needed here as we now inherit
+    // the more generic sendError method from BaseRoutes.
 }
 
 module.exports = AuthMiddleware;
