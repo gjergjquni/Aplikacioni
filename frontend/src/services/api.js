@@ -72,3 +72,166 @@ export const register = (userData) => {
 export const getHomeDashboardData = () => {
   return fetchApi('/dashboard/home');
 };
+
+
+// --- NEW: TRANSACTIONS FUNCTIONS ---
+
+/**
+ * Fetches a list of all transactions for the logged-in user.
+ * It can also accept filters in the future.
+ * @returns {Promise<object>} An object containing the list of transactions.
+ */
+export const getTransactions = (filters = {}) => {
+    // We can build a query string for filters later if needed
+    return fetchApi('/transaction/list');
+  };
+  
+  /**
+   * Creates a new transaction for the logged-in user.
+   * @param {object} transactionData - The details of the new transaction.
+   * @returns {Promise<object>} The server's confirmation response.
+   */
+  export const createTransaction = (transactionData) => {
+    return fetchApi('/transaction/create', {
+      method: 'POST',
+      body: JSON.stringify(transactionData),
+    });
+  };
+
+
+/**
+ * Updates an existing transaction.
+ * @param {string} transactionId - The ID of the transaction to update.
+ * @param {object} transactionData - The new data for the transaction.
+ * @returns {Promise<object>} The server's confirmation response.
+ */
+export const updateTransaction = (transactionId, transactionData) => {
+    return fetchApi(`/transaction/update/${transactionId}`, {
+      method: 'PUT',
+      body: JSON.stringify(transactionData),
+    });
+  };
+  
+  /**
+   * Deletes a transaction.
+   * @param {string} transactionId - The ID of the transaction to delete.
+   * @returns {Promise<object>} The server's confirmation response.
+   */
+  export const deleteTransaction = (transactionId) => {
+    return fetchApi(`/transaction/delete/${transactionId}`, {
+      method: 'DELETE',
+    });
+  };
+
+// --- NEW: GOALS FUNCTIONS ---
+
+/**
+ * Fetches all financial goals for the logged-in user.
+ * @returns {Promise<object>} An object containing the list of goals.
+ */
+export const getGoals = () => {
+    return fetchApi('/goal/list');
+  };
+  
+  /**
+   * Creates a new financial goal for the logged-in user.
+   * @param {object} goalData - The details of the new goal.
+   * @returns {Promise<object>} The server's confirmation response.
+   */
+  export const createGoal = (goalData) => {
+    return fetchApi('/goal/create', {
+      method: 'POST',
+      body: JSON.stringify(goalData),
+    });
+  };
+  
+  /**
+   * Updates an existing financial goal.
+   * @param {string} goalId - The ID of the goal to update.
+   * @param {object} goalData - The new data for the goal.
+   * @returns {Promise<object>} The server's confirmation response.
+   */
+  export const updateGoal = (goalId, goalData) => {
+    return fetchApi(`/goal/update/${goalId}`, {
+      method: 'PUT',
+      body: JSON.stringify(goalData),
+    });
+  };
+  
+  /**
+   * Deletes a financial goal.
+   * @param {string} goalId - The ID of the goal to delete.
+   * @returns {Promise<object>} The server's confirmation response.
+   */
+  export const deleteGoal = (goalId) => {
+    return fetchApi(`/goal/delete/${goalId}`, {
+      method: 'DELETE',
+    });
+  };
+
+
+// --- NEW: SETTINGS / USER PROFILE FUNCTIONS ---
+
+/**
+ * Fetches the complete profile for the logged-in user.
+ * @returns {Promise<object>} An object containing the user's profile data.
+ */
+export const getProfile = () => {
+    return fetchApi('/user/profile');
+  };
+  
+  /**
+   * Updates the profile information for the logged-in user.
+   * @param {object} profileData - The profile data to update (e.g., { fullName, status, profession }).
+   * @returns {Promise<object>} The server's confirmation response.
+   */
+  export const updateProfile = (profileData) => {
+    return fetchApi('/user/profile', {
+      method: 'PUT',
+      body: JSON.stringify(profileData),
+    });
+  };
+  
+  /**
+   * Changes the password for the logged-in user.
+   * @param {object} passwordData - Contains { currentPassword, newPassword, confirmPassword }.
+   * @returns {Promise<object>} The server's confirmation response.
+   */
+  export const changePassword = (passwordData) => {
+    return fetchApi('/user/password', {
+      method: 'POST',
+      body: JSON.stringify(passwordData),
+    });
+  };
+
+  export const getSettings = () => fetchApi('/settings/notifications'); // Endpoint for preferences and notifications
+
+  export const updateSettings = (data) => fetchApi('/settings/notifications', { method: 'PUT', body: JSON.stringify(data) });
+
+  // --- NEW: AI CHAT FUNCTIONS ---
+
+/**
+ * Starts a new AI chat conversation session.
+ * @param {string} topic - The initial topic for the chat.
+ * @returns {Promise<object>} An object containing the new conversationId.
+ */
+export const startAIChat = (topic = 'General') => {
+  return fetchApi('/ai-chat/start', {
+      method: 'POST',
+      body: JSON.stringify({ topic }),
+  });
+};
+
+/**
+* Sends a message to an ongoing AI chat conversation.
+* @param {string} conversationId - The ID of the current conversation.
+* @param {string} message - The user's message text.
+* @returns {Promise<object>} An object containing the AI's response.
+*/
+export const sendMessageToAI = (conversationId, message) => {
+return fetchApi('/ai-chat/message', {
+  method: 'POST',
+  body: JSON.stringify({ conversationId, message }),
+});
+};
+

@@ -1,23 +1,23 @@
 // frontend/src/Components/Dashboard/HomeDashboard.js
 
+// Importimi i librarive të nevojshme nga React
 import React, { useState, useEffect } from 'react';
+// Importimi i ikonave nga react-icons për të përdorur në aplikacion
 import { FaWallet, FaArrowUp, FaArrowDown, FaPlus, FaTimes, FaHome, FaExchangeAlt, FaBullseye, FaRobot, FaCog, FaQuestionCircle, FaBars, FaSignOutAlt } from 'react-icons/fa';
 import './HomeDashboard.css';
 import logo from '../../img/logo1.png';
-import { getHomeDashboardData } from '../../services/api';
+import { getHomeDashboardData, createTransaction } from '../../services/api'; // Import createTransaction
 
-const handleLogout = () => {
-  localStorage.removeItem('token');
-  localStorage.removeItem('user');
-  window.location.href = '/';
-};
-
-export default function HomeDashboard({ onNavigate, loggedInUser }) {
+// Komponenti kryesor i Dashboard-it të shtëpisë
+export default function HomeDashboard({ 
+  onNavigate,
+  loggedInUser
+}) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [showIncomeModal, setShowIncomeModal] = useState(false);
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
-  
+
+  // --- State to hold LIVE data from the backend ---
   const [dashboardData, setDashboardData] = useState({
     balance: 0,
     monthlyIncome: 0,
@@ -28,32 +28,67 @@ export default function HomeDashboard({ onNavigate, loggedInUser }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // --- State for the "Add Income" form ---
+  const [incomeForm, setIncomeForm] = useState({
+    name: '',
+    amount: '',
+    category: 'Të ardhura',
+    type: 'income',
+    date: new Date().toISOString().split('T')[0],
+    description: '' // Optional, can be the same as name
+  });
+
+  const fetchDashboardData = async () => {
+    try {
+      setError('');
+      setIsLoading(true);
+      const data = await getHomeDashboardData();
+      setDashboardData(data);
+    } catch (err) {
+      console.error("Failed to fetch dashboard data:", err);
+      setError("Nuk mund të ngarkoheshin të dhënat. Provoni përsëri më vonë.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     const savedCollapsed = localStorage.getItem('sidebarCollapsed');
     if (savedCollapsed !== null) setIsCollapsed(savedCollapsed === 'true');
-
-    const fetchData = async () => {
-      try {
-        setError('');
-        setIsLoading(true);
-        const data = await getHomeDashboardData();
-        setDashboardData(data);
-      } catch (err) {
-        console.error("Failed to fetch dashboard data:", err);
-        setError("Nuk mund të ngarkoheshin të dhënat. Provoni përsëri më vonë.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
+    fetchDashboardData();
   }, []);
-  
-  const confirmLogout = () => {
-    setShowLogoutModal(false);
-    handleLogout();
+
+ 
+  // --- Function to handle submitting the income form ---
+  const handleIncomeSubmit = async (e) => {
+    e.preventDefault();
+    if (!incomeForm.amount || !incomeForm.name) {
+        alert("Ju lutem plotësoni emrin dhe shumën.");
+        return;
+    }
+    try {
+        await createTransaction({
+            name: incomeForm.name,
+            amount: incomeForm.amount,
+            category: incomeForm.category,
+            type: incomeForm.type,
+            date: incomeForm.date,
+            description: incomeForm.description || incomeForm.name
+        });
+        setShowIncomeModal(false);
+        setIncomeForm({ name: '', amount: '', category: 'Të ardhura', type: 'income', date: new Date().toISOString().split('T')[0], description: '' });
+        fetchDashboardData(); // Refresh the dashboard data
+    } catch (err) {
+        alert(`Gabim: ${err.message}`);
+    }
   };
-  
+
+  // This function will first close the sidebar (on mobile) and then navigate.
+  const handleNavigation = (page) => {
+    setSidebarOpen(false); // Close the sidebar
+    onNavigate(page); // Navigate to the new page
+  };
+
   const dynamicCategories = Object.entries(dashboardData.spendingByCategory).map(([name, value], index) => {
     const colors = ['#00b894', '#0984e3', '#e17055', '#6c5ce7', '#fdcb6e', '#636e72'];
     return { name, value, color: colors[index % colors.length] };
@@ -70,7 +105,6 @@ export default function HomeDashboard({ onNavigate, loggedInUser }) {
 
   return (
     <div className="dashboard-container">
-      {/* Sidebar */}
       <aside className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''} ${isCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-header">
           <div className="sidebar-logo" onClick={() => setIsCollapsed(v => { const nv = !v; localStorage.setItem('sidebarCollapsed', String(nv)); return nv; })}>
@@ -81,17 +115,15 @@ export default function HomeDashboard({ onNavigate, loggedInUser }) {
           </button>
         </div>
         <nav className="sidebar-menu">
-          <button type="button" className="active" onClick={() => onNavigate('dashboard')}><FaHome /> <span>Ballina</span></button>
-          <button type="button" onClick={() => onNavigate('transaksionet')}><FaExchangeAlt /> <span>Transaksionet</span></button>
-          <button type="button" onClick={() => onNavigate('qellimet')}><FaBullseye /> <span>Qëllimet</span></button>
-          <button type="button" onClick={() => onNavigate('aichat')}><FaRobot className="bot-icon" /> <span>AIChat</span></button>
-          <button type="button" onClick={() => onNavigate('settings')}><FaCog /> <span>Settings</span></button>
-          <button type="button" onClick={() => onNavigate('help')}><FaQuestionCircle /> <span>Ndihmë</span></button>
-          <button type="button" onClick={() => setShowLogoutModal(true)} style={{ marginTop: 'auto' }}><FaSignOutAlt /> <span>Dil</span></button>
+          <button type="button" className="active" onClick={() => handleNavigation('dashboard')}><FaHome /> <span>Ballina</span></button>
+          <button type="button" onClick={() => handleNavigation('transaksionet')}><FaExchangeAlt /> <span>Transaksionet</span></button>
+          <button type="button" onClick={() => handleNavigation('qellimet')}><FaBullseye /> <span>Qëllimet</span></button>
+          <button type="button" onClick={() => handleNavigation('aichat')}><FaRobot className="bot-icon" /> <span>AIChat</span></button>
+          <button type="button" onClick={() => handleNavigation('settings')}><FaCog /> <span>Settings</span></button>
+          <button type="button" onClick={() => handleNavigation('help')}><FaQuestionCircle /> <span>Ndihmë</span></button>
         </nav>
       </aside>
       
-      {/* Main Content */}
       <main className="dashboard-main">
         <div className="main-content-center">
           <div className="greeting-section">
@@ -110,19 +142,16 @@ export default function HomeDashboard({ onNavigate, loggedInUser }) {
             <div className="balance-card">
               <FaWallet className="balance-icon" />
               <div className="balance-label">Bilanci total</div>
-              {/* --- FIX APPLIED HERE --- */}
               <div className="balance-value">{parseFloat(dashboardData.balance).toFixed(2)}€</div>
             </div>
             <div className="income-card">
               <FaArrowUp className="income-icon" />
               <div className="income-label">Të ardhura mujore</div>
-              {/* --- FIX APPLIED HERE --- */}
               <div className="income-value">{parseFloat(dashboardData.monthlyIncome).toFixed(2)}€</div>
             </div>
             <div className="expense-card">
               <FaArrowDown className="expense-icon" />
               <div className="expense-label">Shpenzime mujore</div>
-              {/* --- FIX APPLIED HERE --- */}
               <div className="expense-value">{parseFloat(dashboardData.monthlyExpenses).toFixed(2)}€</div>
             </div>
           </div>
@@ -171,25 +200,58 @@ export default function HomeDashboard({ onNavigate, loggedInUser }) {
         </div>
       </main>
 
-      {/* Logout Modal */}
-      {showLogoutModal && (
+      
+      {/* --- THIS IS THE MISSING MODAL CODE --- */}
+      {showIncomeModal && (
         <div className="modal-bg">
           <div className="modal-content">
             <div className="modal-header">
-              <h3>KONFIRMO DALJEN</h3>
-              <button className="modal-close-btn" onClick={() => setShowLogoutModal(false)}><FaTimes /></button>
+              <h3>Shto të ardhura të reja</h3>
+              <button className="modal-close-btn" onClick={() => setShowIncomeModal(false)}>
+                <FaTimes />
+              </button>
             </div>
-            <div className="modal-body"><p>A jeni të sigurt që dëshironi të dilni nga llogaria?</p></div>
-            <div className="modal-actions">
-              <button type="button" className="cancel-btn" onClick={() => setShowLogoutModal(false)}>ANULO</button>
-              <button type="button" className="confirm-btn" onClick={confirmLogout}>PO, DIL</button>
-            </div>
+            <form className="modal-form" onSubmit={handleIncomeSubmit}>
+              <div className="form-group">
+                <label htmlFor="incomeName">Përshkrimi / Emri *</label>
+                <input 
+                  type="text" 
+                  id="incomeName"
+                  placeholder="Psh. Paga e muajit, Bonus, etj."
+                  value={incomeForm.name}
+                  onChange={e => setIncomeForm(f => ({ ...f, name: e.target.value, description: e.target.value }))}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="incomeAmount">Shuma (€) *</label>
+                <input 
+                  type="number" 
+                  id="incomeAmount"
+                  placeholder="Shkruaj shumën..."
+                  value={incomeForm.amount}
+                  onChange={e => setIncomeForm(f => ({ ...f, amount: e.target.value }))}
+                  min="0"
+                  step="0.01"
+                  required
+                />
+              </div>
+              <div className="form-actions">
+                <button 
+                  type="button" 
+                  className="cancel-btn"
+                  onClick={() => setShowIncomeModal(false)}
+                >
+                  Anulo
+                </button>
+                <button type="submit" className="submit-btn">
+                  <FaPlus /> Shto të ardhura
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
-
-      {/* You can add your Income Modal here if needed */}
-
     </div>
   );
 }

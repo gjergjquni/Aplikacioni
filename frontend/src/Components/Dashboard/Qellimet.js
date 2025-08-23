@@ -1,7 +1,10 @@
+// frontend/src/Components/Dashboard/Qellimet.js
+
 import React, { useState, useEffect } from 'react';
 import './Qellimet.css';
 import logo from '../../img/logo1.png';
 import { FaHome, FaExchangeAlt, FaBullseye, FaRobot, FaCog, FaQuestionCircle, FaEdit, FaTrash, FaPlus, FaLaptop, FaPlane, FaCar, FaGraduationCap, FaHeart, FaGift, FaQuestion, FaBars, FaTimes } from 'react-icons/fa';
+import { getGoals, createGoal, updateGoal, deleteGoal } from '../../services/api';
 
 const kategoriaOptions = [
   { value: 'Teknologji', label: 'Teknologji', icon: 'FaLaptop', color: '#00b894' },
@@ -14,23 +17,10 @@ const kategoriaOptions = [
   { value: 'Të tjera', label: 'Të tjera', icon: 'FaQuestion', color: '#636e72' },
 ];
 
-const qellimetShembull = [];
-
 function getIconForCategory(cat) {
   const found = kategoriaOptions.find(k => k.value === cat);
   if (!found) return <FaQuestion />;
-  
-  const iconMap = {
-    'FaLaptop': <FaLaptop />,
-    'FaPlane': <FaPlane />,
-    'FaCar': <FaCar />,
-    'FaHome': <FaHome />,
-    'FaGraduationCap': <FaGraduationCap />,
-    'FaHeart': <FaHeart />,
-    'FaGift': <FaGift />,
-    'FaQuestion': <FaQuestion />
-  };
-  
+  const iconMap = { 'FaLaptop': <FaLaptop />, 'FaPlane': <FaPlane />, 'FaCar': <FaCar />, 'FaHome': <FaHome />, 'FaGraduationCap': <FaGraduationCap />, 'FaHeart': <FaHeart />, 'FaGift': <FaGift />, 'FaQuestion': <FaQuestion /> };
   return iconMap[found.icon] || <FaQuestion />;
 }
 
@@ -39,390 +29,253 @@ function getColorForCategory(cat) {
   return found ? found.color : '#636e72';
 }
 
-function calculateProgress(shumaKursyer, shumaSynuar) {
-  return Math.min((shumaKursyer / shumaSynuar) * 100, 100);
+function calculateProgress(saved, target) {
+  if (target === 0 || !target) return 0;
+  return Math.min((saved / target) * 100, 100);
 }
 
-function calculateDaysLeft(dataPerfundimit) {
+function calculateDaysLeft(targetDate) {
+  if (!targetDate) return 0;
   const today = new Date();
-  const endDate = new Date(dataPerfundimit);
+  today.setHours(0, 0, 0, 0);
+  const endDate = new Date(targetDate);
   const diffTime = endDate - today;
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  return diffDays;
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 }
 
 function formatCurrency(amount) {
-  return new Intl.NumberFormat('sq-AL', { style: 'currency', currency: 'EUR' }).format(amount);
+  return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(amount || 0);
 }
 
 const Qellimet = ({ onNavigate, currentPage }) => {
+  const [qellimet, setQellimet] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+  
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [qellimet, setQellimet] = useState(qellimetShembull);
   const [isCollapsed, setIsCollapsed] = useState(true);
+  
+  const [form, setForm] = useState({ 
+    name: '', 
+    savedAmount: '', 
+    targetAmount: '', 
+    category: '', 
+    targetDate: '', 
+    description: '' 
+  });
+
+  const handleNavigation = (page) => {
+    setSidebarOpen(false); // Close the sidebar
+    onNavigate(page); // Navigate to the new page
+  };
+
+  const fetchGoals = async () => {
+    try {
+      setError('');
+      setIsLoading(true);
+      const data = await getGoals();
+      setQellimet(data.goals || []);
+    } catch (err) {
+      console.error("Failed to fetch goals:", err);
+      setError("Nuk mund të ngarkoheshin qëllimet.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     const savedCollapsed = localStorage.getItem('sidebarCollapsed');
-    const savedOpen = localStorage.getItem('sidebarOpen');
     if (savedCollapsed !== null) setIsCollapsed(savedCollapsed === 'true');
-    if (savedOpen !== null) setSidebarOpen(savedOpen === 'true');
+    fetchGoals();
   }, []);
 
-  // Funksioni për të konfirmuar daljen
-  const confirmLogout = () => {
-    window.location.href = '/';
-    setShowLogoutModal(false);
-  };
-  const [form, setForm] = useState({ 
-    emri: '', 
-    shumaKursyer: '', 
-    shumaSynuar: '', 
-    kategoria: '', 
-    dataFillimit: '', 
-    dataPerfundimit: '', 
-    pershkrim: '' 
-  });
-
-  // Statistika
-  const totaliKursyer = qellimet.reduce((sum, q) => sum + q.shumaKursyer, 0);
-  const totaliSynuar = qellimet.reduce((sum, q) => sum + q.shumaSynuar, 0);
+  const totaliKursyer = qellimet.reduce((sum, q) => sum + parseFloat(q.saved_amount || 0), 0);
+  const totaliSynuar = qellimet.reduce((sum, q) => sum + parseFloat(q.target_amount || 0), 0);
   const progresiTotal = totaliSynuar > 0 ? (totaliKursyer / totaliSynuar) * 100 : 0;
-  const qellimetAktive = qellimet.filter(q => q.shumaKursyer < q.shumaSynuar).length;
-  const qellimetPërfunduara = qellimet.filter(q => q.shumaKursyer >= q.shumaSynuar).length;
+  const qellimetAktive = qellimet.filter(q => parseFloat(q.saved_amount) < parseFloat(q.target_amount)).length;
+  const qellimetPërfunduara = qellimet.length - qellimetAktive;
 
-  // Shto ose edit qëllim
-  function handleSubmit(e) {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.emri || !form.shumaSynuar || !form.kategoria || !form.dataPerfundimit) return;
+    if (!form.name || !form.targetAmount || !form.category || !form.targetDate) return;
     
-    const newQellim = {
-      ...form,
-      shumaKursyer: Number(form.shumaKursyer) || 0,
-      shumaSynuar: Number(form.shumaSynuar)
-    };
-
-    if (editId) {
-      setQellimet(qs => qs.map(q => q.id === editId ? { ...newQellim, id: editId } : q));
-    } else {
-      setQellimet(qs => [...qs, { ...newQellim, id: Date.now() }]);
+    try {
+      if (editId) {
+        await updateGoal(editId, form);
+      } else {
+        await createGoal(form);
+      }
+      setShowModal(false); 
+      setEditId(null);
+      setForm({ name: '', savedAmount: '', targetAmount: '', category: '', targetDate: '', description: '' });
+      fetchGoals();
+    } catch (err) {
+      console.error("Failed to save goal:", err);
+      alert(`Gabim: ${err.message}`);
     }
-    
-    setShowModal(false); 
-    setEditId(null);
-    setForm({ emri: '', shumaKursyer: '', shumaSynuar: '', kategoria: '', dataFillimit: '', dataPerfundimit: '', pershkrim: '' });
   }
 
-  function handleEdit(q) {
+  const handleEdit = (q) => {
     setForm({ 
-      ...q, 
-      shumaKursyer: q.shumaKursyer.toString(),
-      shumaSynuar: q.shumaSynuar.toString()
+      name: q.name,
+      savedAmount: q.saved_amount,
+      targetAmount: q.target_amount,
+      category: q.category,
+      targetDate: q.target_date ? new Date(q.target_date).toISOString().split('T')[0] : '',
+      description: q.description || ''
     });
     setEditId(q.id); 
     setShowModal(true);
   }
 
-  function handleDelete(id) {
-    setQellimet(qs => qs.filter(q => q.id !== id));
+  const handleDelete = async (id) => {
+    if (window.confirm("A jeni i sigurt që doni ta fshini këtë qëllim?")) {
+      try {
+        await deleteGoal(id);
+        fetchGoals();
+      } catch (err) {
+        console.error("Failed to delete goal:", err);
+        alert(`Gabim gjatë fshirjes: ${err.message}`);
+      }
+    }
   }
 
-  function handleUpdateProgress(id, newAmount) {
-    setQellimet(qs => qs.map(q => 
-      q.id === id ? { ...q, shumaKursyer: Math.min(Number(newAmount), q.shumaSynuar) } : q
-    ));
+  const handleUpdateProgress = (id, newAmount) => {
+    const goalToUpdate = qellimet.find(q => q.id === id);
+    if (!goalToUpdate) return;
+
+    const updatedQellimet = qellimet.map(q => 
+        q.id === id ? { ...q, saved_amount: Math.min(Number(newAmount), q.target_amount) } : q
+    );
+    setQellimet(updatedQellimet);
+
+    if (window.updateTimeout) clearTimeout(window.updateTimeout);
+    window.updateTimeout = setTimeout(async () => {
+        try {
+            await updateGoal(id, { savedAmount: newAmount });
+        } catch (err) {
+            console.error("Failed to update goal progress:", err);
+            setQellimet(qellimet); // Revert on error
+        }
+    }, 1000);
   }
 
   return (
     <div className="dashboard-container">
-      {/* Hamburger Menu Button */}
-      <button 
-        className="hamburger-menu-btn"
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        aria-label="Toggle menu"
-      >
-        {sidebarOpen ? <FaTimes /> : <FaBars />}
-      </button>
+        <aside className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''} ${isCollapsed ? 'collapsed' : ''}`}>
+            <div className="sidebar-header">
+                <div className="sidebar-logo" onClick={() => setIsCollapsed(v => !v)}>
+                    <img src={logo} alt="Logo" />
+                </div>
+                <button className="sidebar-close-btn" onClick={() => setSidebarOpen(false)}>
+                    <FaTimes />
+                </button>
+            </div>
+            <nav className="sidebar-menu">
+                <button type="button" onClick={() => handleNavigation('dashboard')}><FaHome /> <span>Ballina</span></button>
+                <button type="button" onClick={() => handleNavigation('transaksionet')}><FaExchangeAlt /> <span>Transaksionet</span></button>
+                <button type="button" className="active"><FaBullseye /> <span>Qëllimet</span></button>
+                <button type="button" onClick={() => handleNavigation('aichat')}><FaRobot className="bot-icon" /> <span>AIChat</span></button>
+                <button type="button" onClick={() => handleNavigation('settings')}><FaCog /> <span>Settings</span></button>
+                <button type="button" onClick={() => handleNavigation('help')}><FaQuestionCircle /> <span>Ndihmë</span></button>
+            </nav>
+        </aside>
 
-      {/* Overlay for mobile */}
-      {sidebarOpen && (
-        <div 
-          className="sidebar-overlay"
-        ></div>
-      )}
-
-      {/* Sidebar */}
-      <aside className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''} ${isCollapsed ? 'collapsed' : ''}`}>
-        <div className="sidebar-header">
-          <div className="sidebar-logo" onClick={() => setIsCollapsed(v => { const nv = !v; localStorage.setItem('sidebarCollapsed', String(nv)); return nv; })}>
-            <img src={logo} alt="Logo" />
-          </div>
-          <button 
-            className="sidebar-close-btn"
-            onClick={() => { setSidebarOpen(false); localStorage.setItem('sidebarOpen', 'false'); }}
-          >
-            <FaTimes />
-          </button>
-        </div>
-        <nav className="sidebar-menu">
-          <button className={`sidebar-link${currentPage === 'dashboard' ? ' active' : ''}`} onClick={() => {onNavigate('dashboard');}}><FaHome /> <span>Ballina</span></button>
-          <button className={`sidebar-link${currentPage === 'transaksionet' ? ' active' : ''}`} onClick={() => {onNavigate('transaksionet');}}><FaExchangeAlt /> <span>Transaksionet</span></button>
-          <button className={`sidebar-link${currentPage === 'qellimet' ? ' active' : ''}`} onClick={() => {onNavigate('qellimet');}}><FaBullseye /> <span>Qëllimet</span></button>
-          <button className={`sidebar-link${currentPage === 'aichat' ? ' active' : ''}`} onClick={() => {onNavigate('aichat');}}><FaRobot className="bot-icon" /> <span>AIChat</span></button>
-          <button className={`sidebar-link${currentPage === 'settings' ? ' active' : ''}`} onClick={() => {onNavigate('settings');}}><FaCog /> <span>Settings</span></button>
-          <button className={`sidebar-link${currentPage === 'help' ? ' active' : ''}`} onClick={() => {onNavigate('help');}}><FaQuestionCircle /> <span>Ndihmë</span></button>
-        </nav>
-      </aside>
-
-      {/* Main Content */}
       <main className="dashboard-main">
         <div className="qellimet-container">
-          {/* Header */}
           <div className="qellimet-header">
-            <div>
-              <h2>Qëllimet e tua financiare</h2>
-              <p className="qellimet-desc">Vendos qëllime, ndiq progresin dhe arri ato që ke planifikuar.</p>
-            </div>
-            <div className="qellimet-action-buttons">
-              <button className="add-btn" onClick={() => setShowModal(true)}><FaPlus /> Shto qëllim</button>
-            </div>
+            <h2>Qëllimet e tua financiare</h2>
+            <p className="qellimet-desc">Vendos qëllime, ndiq progresin dhe arri ato që ke planifikuar.</p>
+            <button className="add-btn" onClick={() => { setEditId(null); setForm({ name: '', savedAmount: '', targetAmount: '', category: '', targetDate: '', description: '' }); setShowModal(true); }}><FaPlus /> Shto qëllim</button>
           </div>
 
-          {/* Statistika */}
           <div className="qellimet-stats">
-            <div className="stat-card">
-              <div className="stat-value">{formatCurrency(totaliKursyer)}</div>
-              <div className="stat-label">Total i kursyer</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-value">{formatCurrency(totaliSynuar)}</div>
-              <div className="stat-label">Total i synuar</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-value">{Math.round(progresiTotal)}%</div>
-              <div className="stat-label">Progresi total</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-value">{qellimetAktive}</div>
-              <div className="stat-label">Qëllime aktive</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-value">{qellimetPërfunduara}</div>
-              <div className="stat-label">Qëllime përfunduara</div>
-            </div>
+            <div className="stat-card"><div className="stat-value">{formatCurrency(totaliKursyer)}</div><div className="stat-label">Total i kursyer</div></div>
+            <div className="stat-card"><div className="stat-value">{formatCurrency(totaliSynuar)}</div><div className="stat-label">Total i synuar</div></div>
+            <div className="stat-card"><div className="stat-value">{Math.round(progresiTotal)}%</div><div className="stat-label">Progresi total</div></div>
+            <div className="stat-card"><div className="stat-value">{qellimetAktive}</div><div className="stat-label">Qëllime aktive</div></div>
+            <div className="stat-card"><div className="stat-value">{qellimetPërfunduara}</div><div className="stat-label">Qëllime përfunduara</div></div>
           </div>
-
-          {/* Shiriti i progresit total */}
-          <div className="qellimet-total-progress">
-            <div className="progress-header">
-              <span>Progresi total i qëllimeve</span>
-              <span>{Math.round(progresiTotal)}%</span>
-            </div>
-            <div className="progress-bar">
-              <div 
-                className="progress-fill" 
-                style={{ width: `${progresiTotal}%` }}
-              ></div>
-            </div>
-          </div>
-
-          {/* Lista e qëllimeve */}
-          <div className="qellimet-grid">
-            {qellimet.map(q => {
-              const progress = calculateProgress(q.shumaKursyer, q.shumaSynuar);
-              const daysLeft = calculateDaysLeft(q.dataPerfundimit);
-              const isCompleted = q.shumaKursyer >= q.shumaSynuar;
-              const isOverdue = daysLeft < 0 && !isCompleted;
-              
-              return (
-                <div key={q.id} className={`qellim-card ${isCompleted ? 'completed' : ''} ${isOverdue ? 'overdue' : ''}`}>
-                  <div className="qellim-header">
-                    <div className="qellim-icon" style={{ color: getColorForCategory(q.kategoria) }}>
-                      {getIconForCategory(q.kategoria)}
-                    </div>
-                    <div className="qellim-title">
-                      <h3>{q.emri}</h3>
-                      <span className="qellim-category">{q.kategoria}</span>
-                    </div>
-                    <div className="qellim-actions">
-                      <button className="icon-btn" title="Edito" onClick={() => handleEdit(q)}><FaEdit /></button>
-                      <button className="icon-btn" title="Fshi" onClick={() => handleDelete(q.id)}><FaTrash /></button>
-                    </div>
-                  </div>
-
-                  <div className="qellim-progress">
-                    <div className="progress-info">
-                      <span>{formatCurrency(q.shumaKursyer)} / {formatCurrency(q.shumaSynuar)}</span>
-                      <span>{Math.round(progress)}%</span>
-                    </div>
-                    <div className="progress-bar">
-                      <div 
-                        className="progress-fill" 
-                        style={{ 
-                          width: `${progress}%`,
-                          backgroundColor: isCompleted ? '#00b894' : getColorForCategory(q.kategoria)
-                        }}
-                      ></div>
-                    </div>
-                  </div>
-
-                  <div className="qellim-details">
-                    <div className="qellim-amount-input">
-                      <label>Përditëso shumën e kursyer:</label>
-                      <input 
-                        type="number" 
-                        value={q.shumaKursyer}
-                        onChange={(e) => handleUpdateProgress(q.id, e.target.value)}
-                        min="0"
-                        max={q.shumaSynuar}
-                        step="10"
-                      />
-                    </div>
-                    
-                    <div className="qellim-info">
-                      <div className="info-item">
-                        <span className="info-label">Afati:</span>
-                        <span className={`info-value ${isOverdue ? 'overdue' : ''}`}>
-                          {isOverdue ? `${Math.abs(daysLeft)} ditë më vonë` : 
-                           daysLeft === 0 ? 'Sot' : 
-                           daysLeft === 1 ? '1 ditë mbetur' : 
-                           `${daysLeft} ditë mbetur`}
-                        </span>
+          
+          {isLoading ? (
+              <p style={{textAlign: 'center', fontSize: '1.2rem', color: '#a8b2d1'}}>Duke ngarkuar qëllimet...</p>
+          ) : error ? (
+              <p style={{textAlign: 'center', fontSize: '1.2rem', color: '#ff6b6b'}}>{error}</p>
+          ) : (
+            <div className="qellimet-grid">
+              {qellimet.map(q => {
+                const progress = calculateProgress(q.saved_amount, q.target_amount);
+                const daysLeft = calculateDaysLeft(q.target_date);
+                const isCompleted = parseFloat(q.saved_amount) >= parseFloat(q.target_amount);
+                const isOverdue = daysLeft < 0 && !isCompleted;
+                
+                return (
+                  <div key={q.id} className={`qellim-card ${isCompleted ? 'completed' : ''} ${isOverdue ? 'overdue' : ''}`}>
+                    <div className="qellim-header">
+                      <div className="qellim-icon" style={{ color: getColorForCategory(q.category) }}>{getIconForCategory(q.category)}</div>
+                      <div className="qellim-title"><h3>{q.name}</h3><span className="qellim-category">{q.category}</span></div>
+                      <div className="qellim-actions">
+                        <button className="icon-btn" title="Edito" onClick={() => handleEdit(q)}><FaEdit /></button>
+                        <button className="icon-btn" title="Fshi" onClick={() => handleDelete(q.id)}><FaTrash /></button>
                       </div>
-                      {q.pershkrim && (
+                    </div>
+                    <div className="qellim-progress">
+                      <div className="progress-info">
+                        <span>{formatCurrency(q.saved_amount)} / {formatCurrency(q.target_amount)}</span>
+                        <span>{Math.round(progress)}%</span>
+                      </div>
+                      <div className="progress-bar"><div className="progress-fill" style={{ width: `${progress}%`, backgroundColor: isCompleted ? '#00b894' : getColorForCategory(q.category) }}></div></div>
+                    </div>
+                    <div className="qellim-details">
+                      <div className="qellim-amount-input">
+                        <label>Përditëso shumën e kursyer:</label>
+                        <input type="number" defaultValue={q.saved_amount} onChange={(e) => handleUpdateProgress(q.id, e.target.value)} min="0" max={q.target_amount} step="10" />
+                      </div>
+                      <div className="qellim-info">
                         <div className="info-item">
-                          <span className="info-label">Përshkrim:</span>
-                          <span className="info-value">{q.pershkrim}</span>
+                          <span className="info-label">Afati:</span>
+                          <span className={`info-value ${isOverdue ? 'overdue' : ''}`}>{isOverdue ? `${Math.abs(daysLeft)} ditë më vonë` : `${daysLeft} ditë mbetur`}</span>
                         </div>
-                      )}
+                        {q.description && <div className="info-item"><span className="info-label">Përshkrim:</span><span className="info-value">{q.description}</span></div>}
+                      </div>
                     </div>
+                    {isCompleted && <div className="qellim-completed-badge"><span>🎉 Qëllimi u arrit!</span></div>}
                   </div>
-
-                  {isCompleted && (
-                    <div className="qellim-completed-badge">
-                      <span>🎉 Qëllimi u arrit!</span>
-                    </div>
-                  )}
+                );
+              })}
+              {qellimet.length === 0 && !isLoading && (
+                <div className="qellimet-empty">
+                  <div className="empty-icon">🎯</div>
+                  <h3>Nuk ke qëllime ende</h3>
+                  <p>Fillo duke shtuar qëllimin tënd të parë financiar!</p>
+                  <button className="add-btn" onClick={() => { setEditId(null); setForm({ name: '', savedAmount: '', targetAmount: '', category: '', targetDate: '', description: '' }); setShowModal(true); }}><FaPlus /> Shto qëllimin tënd të parë</button>
                 </div>
-              );
-            })}
-          </div>
-
-          {qellimet.length === 0 && (
-            <div className="qellimet-empty">
-              <div className="empty-icon">🎯</div>
-              <h3>Nuk ke qëllime ende</h3>
-              <p>Fillo duke shtuar qëllimin tënd të parë financiar!</p>
-              <button className="add-btn" onClick={() => setShowModal(true)}><FaPlus /> Shto qëllimin tënd të parë</button>
+              )}
             </div>
           )}
         </div>
 
-        {/* Modal për shtim/editim qëllimi */}
         {showModal && (
           <div className="modal-bg">
             <div className="modal-content">
               <h3>{editId ? 'Edito' : 'Shto'} qëllim</h3>
               <form className="modal-form" onSubmit={handleSubmit}>
-                <input 
-                  type="text" 
-                  placeholder="Emri i qëllimit" 
-                  value={form.emri} 
-                  onChange={e => setForm(f => ({ ...f, emri: e.target.value }))} 
-                  required 
-                />
-                <input 
-                  type="number" 
-                  placeholder="Shuma e synuar (€)" 
-                  value={form.shumaSynuar} 
-                  onChange={e => setForm(f => ({ ...f, shumaSynuar: e.target.value }))} 
-                  required 
-                />
-                <input 
-                  type="number" 
-                  placeholder="Shuma e kursyer (€) - opsionale" 
-                  value={form.shumaKursyer} 
-                  onChange={e => setForm(f => ({ ...f, shumaKursyer: e.target.value }))} 
-                />
-                <select 
-                  value={form.kategoria} 
-                  onChange={e => setForm(f => ({ ...f, kategoria: e.target.value }))} 
-                  required
-                >
+                <input type="text" placeholder="Emri i qëllimit" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required />
+                <input type="number" placeholder="Shuma e synuar (€)" value={form.targetAmount} onChange={e => setForm(f => ({ ...f, targetAmount: e.target.value }))} required />
+                <input type="number" placeholder="Shuma e kursyer (€) - opsionale" value={form.savedAmount} onChange={e => setForm(f => ({ ...f, savedAmount: e.target.value }))} />
+                <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} required>
                   <option value="">Zgjidh kategorinë</option>
-                  {kategoriaOptions.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
+                  {kategoriaOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                 </select>
-                <input 
-                  type="date" 
-                  placeholder="Data e fillimit" 
-                  value={form.dataFillimit} 
-                  onChange={e => setForm(f => ({ ...f, dataFillimit: e.target.value }))} 
-                />
-                <input 
-                  type="date" 
-                  placeholder="Data e përfundimit" 
-                  value={form.dataPerfundimit} 
-                  onChange={e => setForm(f => ({ ...f, dataPerfundimit: e.target.value }))} 
-                  required 
-                />
-                <textarea 
-                  placeholder="Përshkrim shtesë (opsional)" 
-                  value={form.pershkrim} 
-                  onChange={e => setForm(f => ({ ...f, pershkrim: e.target.value }))} 
-                />
+                <input type="date" placeholder="Data e përfundimit" value={form.targetDate} onChange={e => setForm(f => ({ ...f, targetDate: e.target.value }))} required />
+                <textarea placeholder="Përshkrim shtesë (opsional)" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
                 <div style={{display:'flex',justifyContent:'flex-end',gap:12,marginTop:16}}>
-                  <button 
-                    type="button" 
-                    onClick={() => {
-                      setShowModal(false);
-                      setEditId(null);
-                      setForm({ emri: '', shumaKursyer: '', shumaSynuar: '', kategoria: '', dataFillimit: '', dataPerfundimit: '', pershkrim: '' });
-                    }} 
-                    className="cancel-btn"
-                  >
-                    Anulo
-                  </button>
-                  <button type="submit" className="add-btn">
-                    {editId ? 'Ruaj' : 'Shto'}
-                  </button>
+                  <button type="button" onClick={() => {setShowModal(false); setEditId(null); setForm({ name: '', savedAmount: '', targetAmount: '', category: '', targetDate: '', description: '' });}} className="cancel-btn">Anulo</button>
+                  <button type="submit" className="add-btn">{editId ? 'Ruaj' : 'Shto'}</button>
                 </div>
               </form>
-            </div>
-          </div>
-        )}
-
-        {/* Modal për konfirmimin e daljes */}
-        {showLogoutModal && (
-          <div className="modal-bg">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h3>KONFIRMO DALJEN</h3>
-                <button className="modal-close-btn" onClick={() => setShowLogoutModal(false)}>
-                  <FaTimes />
-                </button>
-              </div>
-              <div className="modal-body">
-                <p>A jeni të sigurt që dëshironi të dilni nga llogaria?</p>
-              </div>
-              <div className="modal-actions">
-                <button 
-                  type="button" 
-                  className="cancel-btn" 
-                  onClick={() => setShowLogoutModal(false)}
-                >
-                  ANULO
-                </button>
-                <button 
-                  type="button" 
-                  className="confirm-btn" 
-                  onClick={confirmLogout}
-                >
-                  PO, DIL
-                </button>
-              </div>
             </div>
           </div>
         )}
@@ -431,4 +284,4 @@ const Qellimet = ({ onNavigate, currentPage }) => {
   );
 };
 
-export default Qellimet; 
+export default Qellimet;

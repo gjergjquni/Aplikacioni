@@ -1,5 +1,5 @@
 // Importimi i librarive të nevojshme nga React
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 // Importimi i ikonave nga react-icons
 import { FaHome, FaExchangeAlt, FaBullseye, FaRobot, FaCog, FaQuestionCircle, FaBars, FaTimes, FaPlus, FaMinus, FaBook, FaShieldAlt, FaEnvelope, FaExclamationTriangle } from 'react-icons/fa';
 import './Help.css';
@@ -9,14 +9,12 @@ import logo from '../../img/logo1.png';
 export default function Help({ currentPage, onNavigate }) {
   // State për të menaxhuar sidebar-in në mobile
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(true);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  React.useEffect(() => {
+  React. useEffect(() => {
     const savedCollapsed = localStorage.getItem('sidebarCollapsed');
-    const savedOpen = localStorage.getItem('sidebarOpen');
     if (savedCollapsed !== null) setIsCollapsed(savedCollapsed === 'true');
-    if (savedOpen !== null) setSidebarOpen(savedOpen === 'true');
   }, []);
   
   // Funksioni për të konfirmuar daljen
@@ -48,6 +46,11 @@ export default function Help({ currentPage, onNavigate }) {
     }));
   };
 
+  const handleNavigation = (page) => {
+    setSidebarOpen(false); // Close the sidebar
+    onNavigate(page);     // Navigate to the new page
+  };
+
 
 
   return (
@@ -60,12 +63,7 @@ export default function Help({ currentPage, onNavigate }) {
         <FaBars />
       </button>
 
-      {/* Sidebar Overlay për Mobile */}
-      {sidebarOpen && (
-        <div 
-          className="sidebar-overlay"
-        ></div>
-      )}
+      {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)}></div>}
 
       {/* Sidebar */}
       <aside className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''} ${isCollapsed ? 'collapsed' : ''}`}>
@@ -81,12 +79,12 @@ export default function Help({ currentPage, onNavigate }) {
           </button>
         </div>
         <nav className="sidebar-menu">
-          <button type="button" onClick={e => {e.preventDefault(); onNavigate('dashboard');}}><FaHome /> <span>Ballina</span></button>
-          <button type="button" onClick={e => {e.preventDefault(); onNavigate('transaksionet');}}><FaExchangeAlt /> <span>Transaksionet</span></button>
-          <button type="button" onClick={e => {e.preventDefault(); onNavigate('qellimet');}}><FaBullseye /> <span>Qëllimet</span></button>
-          <button type="button" onClick={e => {e.preventDefault(); onNavigate('aichat');}}><FaRobot className="bot-icon" /> <span>AIChat</span></button>
-          <button type="button" onClick={e => {e.preventDefault(); onNavigate('settings');}}><FaCog /> <span>Cilësimet</span></button>
-          <button type="button" className="active" onClick={e => {e.preventDefault(); onNavigate('help');}}><FaQuestionCircle /> <span>Ndihmë</span></button>
+        <button type="button" onClick={() => handleNavigation('dashboard')}><FaHome /> <span>Ballina</span></button>
+          <button type="button" onClick={() => handleNavigation('transaksionet')}><FaExchangeAlt /> <span>Transaksionet</span></button>
+          <button type="button" onClick={() => handleNavigation('qellimet')}><FaBullseye /> <span>Qëllimet</span></button>
+          <button type="button" onClick={() => handleNavigation('aichat')}><FaRobot className="bot-icon" /> <span>AIChat</span></button>
+          <button type="button" onClick={() => handleNavigation('settings')}><FaCog /> <span>Cilësimet</span></button>
+          <button type="button" className="active"><FaQuestionCircle /> <span>Ndihmë</span></button>
         </nav>
       </aside>
       

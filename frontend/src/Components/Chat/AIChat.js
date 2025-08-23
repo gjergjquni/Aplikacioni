@@ -1,105 +1,85 @@
+
+
 import React, { useState, useRef, useEffect } from 'react';
 import { FaBars, FaTimes, FaHome, FaExchangeAlt, FaBullseye, FaRobot, FaCog, FaQuestionCircle } from 'react-icons/fa';
 import './AIChat.css';
 import logo from '../../img/logo1.png';
+import { startAIChat, sendMessageToAI } from '../../services/api';
 
-const AIChat = ({ currentPage, onNavigate }) => {
+const AIChat = ({onNavigate, user }) => {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(true);
+  const [conversationId, setConversationId] = useState(null);
 
   useEffect(() => {
     const savedCollapsed = localStorage.getItem('sidebarCollapsed');
-    const savedOpen = localStorage.getItem('sidebarOpen');
     if (savedCollapsed !== null) setIsCollapsed(savedCollapsed === 'true');
-    if (savedOpen !== null) setSidebarOpen(savedOpen === 'true');
-  }, []);
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+    const initializeChat = async () => {
+        try {
+            const data = await startAIChat(`Chat for ${user.email}`);
+            setConversationId(data.conversationId);
+        } catch (error) {
+            console.error("Could not start AI chat session:", error);
+        }
+    };
+    if(user?.email) initializeChat();
+  }, [user]);
+
   const messagesEndRef = useRef(null);
-
-  // Funksioni për të konfirmuar daljen
-  const confirmLogout = () => {
-    window.location.href = '/';
-    setShowLogoutModal(false);
-  };
-
-
-
-  // Avatar configurations - easily customizable
+  
   const avatars = {
-    user: {
-      src: '/img/user.icon.png',
-      alt: 'Përdoruesi',
-      fallback: '👤'
-    },
-    ai: {
-      src: null, // No AI avatar image exists yet
-      alt: 'AI Asistent',
-      fallback: '🤖'
-    }
+    user: { src: '/img/user.icon.png', alt: 'Përdoruesi', fallback: '👤' },
+    ai: { src: null, alt: 'AI Asistent', fallback: '🤖' }
   };
 
-  // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  // Simulate AI response (replace with actual API call)
-  const simulateAIResponse = async (userMessage) => {
-    setIsLoading(true);
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    // Mock AI responses based on user input
-    let aiResponse = "Faleminderit për pyetjen tuaj! Unë jam këtu për t'ju ndihmuar me pyetjet tuaja financiare.";
-    
-    if (userMessage.toLowerCase().includes('shpenzuar')) {
-      aiResponse = "Bazuar në të dhënat tuaja, këtë muaj keni shpenzuar rreth 450€. Kategoria më e madhe është ushqimi me 150€.";
-    } else if (userMessage.toLowerCase().includes('të ardhura')) {
-      aiResponse = "Të ardhurat tuaja totale janë 1240€. Kjo përfshin pagën mujore dhe të ardhura të tjera.";
-    } else if (userMessage.toLowerCase().includes('kursej')) {
-      aiResponse = "Për të kursyer më shumë, ju rekomandoj të: 1) Ndani shpenzimet në kategoritë e tyre, 2) Vendosni një buxhet mujor, 3) Gjurmoni shpenzimet tuaja çdo javë.";
-    } else if (userMessage.toLowerCase().includes('qëllime')) {
-      aiResponse = "Qëllimet tuaja aktuale financiare janë: 1) Kursimi për pushime - 2000€, 2) Blerja e një makine - 15000€, 3) Investimi në fond - 5000€.";
-    }
-    
-    setIsLoading(false);
-    return aiResponse;
-  };
+  useEffect(scrollToBottom, [messages]);
 
   const handleSendMessage = async () => {
-    if (!inputValue.trim()) return;
+    if (!inputValue.trim() || !conversationId) return;
 
     const userMessage = {
       id: Date.now(),
       text: inputValue,
       sender: 'user',
-      timestamp: new Date().toLocaleTimeString()
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const currentInput = inputValue;
     setInputValue('');
+    setIsLoading(true);
 
-    const aiResponse = await simulateAIResponse(inputValue);
-    
-    const aiMessage = {
-      id: Date.now() + 1,
-      text: aiResponse,
-      sender: 'ai',
-      timestamp: new Date().toLocaleTimeString()
-    };
+    try {
+      const data = await sendMessageToAI(conversationId, currentInput);
+      
+      const aiMessage = {
+        id: data.aiResponse.id,
+        text: data.aiResponse.content,
+        sender: 'ai',
+        timestamp: new Date(data.aiResponse.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      setMessages(prev => [...prev, aiMessage]);
 
-    setMessages(prev => [...prev, aiMessage]);
+    } catch (error) {
+      const errorMessage = {
+        id: Date.now() + 1,
+        text: "Për momentin nuk mund të lidhem me asistentin. Provoni më vonë.",
+        sender: 'ai',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
   };
-
-
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -108,43 +88,37 @@ const AIChat = ({ currentPage, onNavigate }) => {
     }
   };
 
+  // --- NEW: A function to handle navigation clicks ---
+  const handleNavigation = (page) => {
+    setSidebarOpen(false); // Close the sidebar
+    onNavigate(page);     // Navigate to the new page
+  };
+
   return (
     <div className="dashboard-container">
-      {/* Hamburger Menu Button */}
-      <button 
-        className="hamburger-menu-btn"
-        onClick={() => setSidebarOpen(true)}
-      >
+      <button className="hamburger-menu-btn" onClick={() => setSidebarOpen(true)}>
         <FaBars />
       </button>
 
-      {/* Sidebar Overlay */}
-      {sidebarOpen && (
-        <div 
-          className="sidebar-overlay"
-        ></div>
-      )}
+      {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)}></div>}
 
-      {/* Sidebar */}
       <aside className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''} ${isCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-header">
-          <div className="sidebar-logo" onClick={() => setIsCollapsed(v => { const nv = !v; localStorage.setItem('sidebarCollapsed', String(nv)); return nv; })}>
+          <div className="sidebar-logo" onClick={() => setIsCollapsed(v => !v)}>
             <img src={logo} alt="Logo" />
           </div>
-          <button 
-            className="sidebar-close-btn"
-            onClick={() => { setSidebarOpen(false); localStorage.setItem('sidebarOpen', 'false'); }}
-          >
+          <button className="sidebar-close-btn" onClick={() => setSidebarOpen(false)}>
             <FaTimes />
           </button>
         </div>
+        {/* --- MODIFIED: onClick now calls handleNavigation and "Dil" is gone --- */}
         <nav className="sidebar-menu">
-          <button type="button" onClick={e => {e.preventDefault(); onNavigate('dashboard');}}><FaHome /> <span>Ballina</span></button>
-          <button type="button" onClick={e => {e.preventDefault(); onNavigate('transaksionet');}}><FaExchangeAlt /> <span>Transaksionet</span></button>
-          <button type="button" onClick={e => {e.preventDefault(); onNavigate('qellimet');}}><FaBullseye /> <span>Qëllimet</span></button>
-          <button type="button" className="active" onClick={e => {e.preventDefault(); onNavigate('aichat');}}><FaRobot className="bot-icon" /> <span>AIChat</span></button>
-          <button type="button" onClick={e => {e.preventDefault(); onNavigate('settings');}}><FaCog /> <span>Settings</span></button>
-          <button type="button" onClick={e => {e.preventDefault(); onNavigate('help');}}><FaQuestionCircle /> <span>Ndihmë</span></button>
+          <button type="button" onClick={() => handleNavigation('dashboard')}><FaHome /> <span>Ballina</span></button>
+          <button type="button" onClick={() => handleNavigation('transaksionet')}><FaExchangeAlt /> <span>Transaksionet</span></button>
+          <button type="button" onClick={() => handleNavigation('qellimet')}><FaBullseye /> <span>Qëllimet</span></button>
+          <button type="button" className="active"><FaRobot className="bot-icon" /> <span>AIChat</span></button>
+          <button type="button" onClick={() => handleNavigation('settings')}><FaCog /> <span>Settings</span></button>
+          <button type="button" onClick={() => handleNavigation('help')}><FaQuestionCircle /> <span>Ndihmë</span></button>
         </nav>
       </aside>
 
@@ -253,38 +227,7 @@ const AIChat = ({ currentPage, onNavigate }) => {
           </div>
         </div>
 
-        {/* Modal për konfirmimin e daljes */}
-        {showLogoutModal && (
-          <div className="modal-bg">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h3>KONFIRMO DALJEN</h3>
-                <button className="modal-close-btn" onClick={() => setShowLogoutModal(false)}>
-                  <FaTimes />
-                </button>
-              </div>
-              <div className="modal-body">
-                <p>A jeni të sigurt që dëshironi të dilni nga llogaria?</p>
-              </div>
-              <div className="modal-actions">
-                <button 
-                  type="button" 
-                  className="cancel-btn" 
-                  onClick={() => setShowLogoutModal(false)}
-                >
-                  ANULO
-                </button>
-                <button 
-                  type="button" 
-                  className="confirm-btn" 
-                  onClick={confirmLogout}
-                >
-                  PO, DIL
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        
       </main>
     </div>
   );

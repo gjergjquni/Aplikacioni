@@ -4,12 +4,13 @@
  */
 
 
-const Validators = require('../utils/validators');
-const ErrorHandler = require('../middleware/errorHandler');
 const bcrypt = require('bcrypt');
 const config = require('../utils/config');
+const Validators = require('../utils/validators');
+const ErrorHandler = require('../middleware/errorHandler');
+const BaseRoutes = require('./BaseRoutes');
 
-class UserRoutes {
+class UserRoutes extends BaseRoutes {
     async handle(req, res, context) {
         const { authMiddleware, parsedUrl } = context;
         const method = req.method.toUpperCase();
@@ -67,7 +68,7 @@ class UserRoutes {
         try {
             const userId = req.user.userId;
             // This will handle data from your "Ndrysho emrin", "Ndrysho statusin", etc. modals
-            const { fullName, status, profession } = req.body;
+            const { fullName, status, profession, email } = req.body;
 
             const updates = [];
             const params = [];
@@ -78,6 +79,29 @@ class UserRoutes {
             if (status) {
                 updates.push('employment_status = ?');
                 params.push(status);
+            }
+
+            if (email) {
+                // Step 1: Validate the new email format
+                const emailValidation = Validators.validateEmail(email);
+                if (!emailValidation.valid) {
+                    return this.sendError(res, 400, emailValidation.message);
+                }
+
+                // Step 2: Check if another user already has this email
+                const existingUser = await databaseManager.get(
+                    'SELECT id FROM users WHERE email = ? AND id != ?', // Find other users with this email
+                    [emailValidation.sanitized, userId]
+                );
+
+                // Step 3: If another user exists, send a conflict error
+                if (existingUser) {
+                    return this.sendError(res, 409, 'Ky email është tashmë i regjistruar nga një përdorues tjetër.'); // "This email is already registered by another user."
+                }
+
+                // Step 4: If the email is unique, add it to the update query
+                updates.push('email = ?');
+                params.push(emailValidation.sanitized);
             }
             
             if (updates.length > 0) {

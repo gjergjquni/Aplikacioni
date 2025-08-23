@@ -1,18 +1,17 @@
-
+// backend/routes/goalRoutes.js
 
 const Validators = require('../utils/validators');
 const ErrorHandler = require('../middleware/errorHandler');
+const BaseRoutes = require('./BaseRoutes'); // <-- IMPORT BaseRoutes
 
-class GoalRoutes {
+class GoalRoutes extends BaseRoutes { // <-- FIX: EXTEND BaseRoutes
     async handle(req, res, context) {
         const { authMiddleware, parsedUrl } = context;
 
-        // All goal routes require a user to be logged in
         authMiddleware.requireAuth(req, res, async () => {
             const pathname = parsedUrl.pathname;
             const method = req.method.toUpperCase();
 
-            // --- THIS ROUTING LOGIC IS NOW COMPLETE ---
             if (pathname === '/goal/list' && method === 'GET') {
                 return await this.listGoals(req, res, context);
             }
@@ -30,7 +29,6 @@ class GoalRoutes {
         });
     }
 
-    // --- FETCHES ALL GOALS FOR THE LOGGED-IN USER ---
     async listGoals(req, res, { databaseManager }) {
         try {
             const userId = req.user.userId;
@@ -45,24 +43,22 @@ class GoalRoutes {
         }
     }
 
-    // --- CREATES A NEW GOAL ---
     async createGoal(req, res, { databaseManager }) {
         try {
             const userId = req.user.userId;
             const { name, targetAmount, category, targetDate, savedAmount, description } = req.body;
 
-            // Basic validation
             if (!name || !targetAmount || !category || !targetDate) {
                 return this.sendError(res, 400, 'Name, target amount, category, and target date are required.');
             }
 
             const goalId = Validators.generateSecureId();
             
-            // This query now includes all fields from your frontend form
             await databaseManager.run(
                 `INSERT INTO goals (id, user_id, name, target_amount, saved_amount, category, target_date, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
                 [goalId, userId, name, parseFloat(targetAmount), parseFloat(savedAmount) || 0, category, targetDate, description || null]
             );
+            // This line will now work correctly because the method is inherited
             this.sendSuccess(res, 201, { message: 'Goal created successfully', goalId });
         } catch (error) {
             ErrorHandler.logError(error, req);
@@ -70,17 +66,12 @@ class GoalRoutes {
         }
     }
 
-    // --- (NEW FUNCTION) UPDATES AN EXISTING GOAL ---
     async updateGoal(req, res, { databaseManager, parsedUrl }) {
         try {
             const goalId = parsedUrl.pathname.split('/')[3];
             const userId = req.user.userId;
-            // This now supports updating all fields, not just the saved amount
-            const { name, targetAmount, savedAmount, category, targetDate, description } = req.body;
+            const { savedAmount } = req.body;
             
-            // A more robust implementation would check which fields are provided
-            // For simplicity, we'll build a query that can update any of them.
-            // Note: This example focuses on updating the saved amount, as it's the most common action.
             if (savedAmount === undefined) {
                  return this.sendError(res, 400, 'Saved amount is required for an update.');
             }
@@ -100,7 +91,6 @@ class GoalRoutes {
         }
     }
 
-    // --- (NEW FUNCTION) DELETES A GOAL ---
     async deleteGoal(req, res, { databaseManager, parsedUrl }) {
         try {
             const goalId = parsedUrl.pathname.split('/')[3];
@@ -119,17 +109,6 @@ class GoalRoutes {
             ErrorHandler.logError(error, req);
             this.sendError(res, 500, 'Failed to delete goal');
         }
-    }
-
-    // --- HELPER FUNCTIONS ---
-    sendSuccess(res, statusCode, data) {
-        res.writeHead(statusCode, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: true, ...data }));
-    }
-
-    sendError(res, statusCode, message) {
-        res.writeHead(statusCode, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: false, error: { message, code: statusCode } }));
     }
 }
 
