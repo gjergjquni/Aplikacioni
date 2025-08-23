@@ -183,23 +183,44 @@ export default function Settings({ currentPage, onNavigate, onLogout }) {
                   <div className="header-icon"><FaUser /></div>
                   <div className="header-text"><h2>Profili</h2><p>Informacionet personale dhe profesionale</p></div>
                 </div>
-                <div className="profile-info-grid">
-                  <div className="info-card">
-                    <div className="info-header"><FaUser className="info-icon" /><span>Emri dhe Mbiemri</span></div>
-                    <div className="info-value">{profileData.fullName}</div>
-                    <button className="info-action-btn" onClick={() => setShowNameModal(true)}><FaEdit /> Ndrysho</button>
-                  </div>
-                  <div className="info-card">
-                    <div className="info-header"><FaGlobe className="info-icon" /><span>Email-i</span></div>
-                    <div className="info-value">{profileData.email}</div>
-                    <button className="info-action-btn" onClick={() => setShowEmailModal(true)}><FaEdit /> Ndrysho</button>
-                  </div>
-                  <div className="info-card">
-                    <div className="info-header"><FaGraduationCap className="info-icon" /><span>Statusi i profesionit</span></div>
-                    <div className="info-value">{profileData.employmentStatus || 'Student'}</div>
-                    <button className="info-action-btn" onClick={() => setShowStatusModal(true)}><FaEdit /> Ndrysho</button>
-                  </div>
-                </div>
+                
+
+  <div className="profile-info-grid">
+  <div className="info-card">
+    <div className="info-header">
+      <FaUser className="info-icon" />
+      <span>Emri dhe Mbiemri</span>
+    </div>
+    {/* --- FIX: Display the user's full name here --- */}
+    <div className="info-value">{profileData.fullName}</div>
+    <button className="info-action-btn" onClick={() => setShowNameModal(true)}>
+      <FaEdit /> Ndrysho
+    </button>
+  </div>
+  
+  <div className="info-card">
+    <div className="info-header">
+      <FaGlobe className="info-icon" />
+      <span>Email-i</span>
+    </div>
+    {/* --- FIX: Display the user's email here --- */}
+    <div className="info-value">{profileData.email}</div>
+    <button className="info-action-btn" onClick={() => setShowEmailModal(true)}>
+      <FaEdit /> Ndrysho
+    </button>
+  </div>
+  
+  <div className="info-card">
+    <div className="info-header">
+      <FaGraduationCap className="info-icon" />
+      <span>Statusi i profesionit</span>
+    </div>
+    <div className="info-value">{profileData.employmentStatus || 'Student'}</div>
+    <button className="info-action-btn" onClick={() => setShowStatusModal(true)}>
+      <FaEdit /> Ndrysho
+    </button>
+  </div>
+</div>
                 <div className="profile-actions">
                   <button className="action-btn primary" onClick={() => setShowPasswordModal(true)}><FaEdit /> Ndrysho fjalëkalimin</button>
                   <div className="action-buttons">
