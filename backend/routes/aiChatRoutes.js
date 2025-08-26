@@ -1,3 +1,4 @@
+// backend/routes/aiChatRoutes.js
 
 const Validators = require('../utils/validators');
 const ErrorHandler = require('../middleware/errorHandler');
@@ -772,7 +773,7 @@ class AIChatRoutes {
 
     // --- HELPER FUNCTIONS ---
 
-    // --- THIS IS THE ONLY METHOD THAT IS REPLACED ---
+    // --- MODIFIED FUNCTION WITH DEBUGGING LOGS ---
     async generateAIResponse(history, model) {
         const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL;
 
@@ -791,12 +792,16 @@ class AIChatRoutes {
                 context: history.context || ''
             };
 
+            // --- ADDED LOG ---
+            console.log('Sending to n8n:', JSON.stringify(requestBody, null, 2));
+
             const response = await axios.post(n8nWebhookUrl, requestBody, {
                 headers: { 'Content-Type': 'application/json' }
             });
 
-            // IMPORTANT: Adjust 'response.data.reply' based on what your n8n workflow actually returns.
-            // If n8n returns { "content": "..." }, use response.data.content
+            // --- ADDED LOG ---
+            console.log('Received from n8n:', JSON.stringify(response.data, null, 2));
+
             const aiContent = response.data.reply || response.data.content || "I'm sorry, I couldn't process that request.";
             const tokensUsed = response.data.tokens || this.estimateTokens(aiContent);
 
@@ -806,7 +811,9 @@ class AIChatRoutes {
             };
 
         } catch (error) {
-            console.error('Error calling n8n webhook:', error.response ? error.response.data : error.message);
+            // --- MODIFIED LOG FOR BETTER ERROR DETAIL ---
+            console.error('Error calling n8n webhook:', error.response ? JSON.stringify(error.response.data, null, 2) : error.message);
+            
             return {
                 content: "I'm sorry, there was an error communicating with the AI service. Please try again later.",
                 tokens: 15

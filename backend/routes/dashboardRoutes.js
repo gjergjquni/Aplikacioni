@@ -9,25 +9,16 @@ class DashboardRoutes extends BaseRoutes {
         const pathname = parsedUrl.pathname;
         const method = req.method.toUpperCase();
 
-        // This simplified structure uses the middleware correctly.
-        // It ensures requireAuth runs and attaches req.user before any route logic.
         authMiddleware.requireAuth(req, res, async () => {
             if (pathname === '/dashboard/home' && method === 'GET') {
                 return await this.getHomeDashboardData(req, res, context);
             }
             
-            // Add any other future dashboard-related routes inside this block
-            // For example:
-            // if (pathname === '/dashboard/yearly-report' && method === 'GET') {
-            //     return await this.getYearlyReport(req, res, context);
-            // }
-
             this.sendError(res, 404, 'Dashboard endpoint not found');
         });
     }
 
     async getHomeDashboardData(req, res, { databaseManager }) {
-        // Now, req.user is guaranteed to be defined here by the middleware
         const userId = req.user.userId;
         try {
             const [overview, notifications, spendingStats] = await Promise.all([
@@ -38,11 +29,11 @@ class DashboardRoutes extends BaseRoutes {
             
             const homeData = {
                 balance: overview.summary.totalBalance,
-                monthlyIncome: overview.currentMonth.income,
-                monthlyExpenses: overview.currentMonth.expenses,
+                monthlyIncome: overview.currentMonth.income, // This now represents TOTAL income
+                monthlyExpenses: overview.currentMonth.expenses, // This now represents TOTAL expenses
                 notifications: notifications,
                 spendingByCategory: spendingStats.byCategory,
-                expenseChangePercentage: 0 // Placeholder as this is a complex comparison
+                expenseChangePercentage: 0 // Placeholder
             };
 
             this.sendSuccess(res, 200, homeData);
@@ -54,23 +45,24 @@ class DashboardRoutes extends BaseRoutes {
 
     async buildDashboardOverview(databaseManager, userId) {
         try {
-            const currentMonthISO = new Date().toISOString().slice(0, 7);
-            
-            const monthlyTotals = await databaseManager.get(`
+            // --- THIS IS THE CORRECTED QUERY ---
+            // It now sums ALL income and expenses, not just for the current month,
+            // so that it matches the logic of the Total Balance card.
+            const totals = await databaseManager.get(`
                 SELECT
                     COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 0) as income,
                     COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0) as expenses
                 FROM transactions 
-                WHERE user_id = ? AND SUBSTR(date, 1, 7) = ?`,
-                [userId, currentMonthISO]
+                WHERE user_id = ?`,
+                [userId] // The date filter has been removed
             );
 
-            const totalBalance = await this.calculateTotalBalance(databaseManager, userId);
+            const totalBalance = (totals.income || 0) - (totals.expenses || 0);
             
             return {
                 currentMonth: {
-                    income: monthlyTotals.income || 0,
-                    expenses: monthlyTotals.expenses || 0
+                    income: totals.income || 0,
+                    expenses: totals.expenses || 0
                 },
                 summary: {
                     totalBalance: totalBalance
@@ -125,6 +117,7 @@ class DashboardRoutes extends BaseRoutes {
         };
     }
 
+    // This function is no longer needed here as the logic is combined above, but we can leave it.
     async calculateTotalBalance(databaseManager, userId) {
         const result = await databaseManager.get(`
             SELECT 

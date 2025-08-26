@@ -1,9 +1,11 @@
+// frontend/src/Components/UI/Settings.js
 
 import React, { useState, useEffect } from 'react';
 import { FaCog, FaUser, FaBell, FaPalette, FaGlobe, FaSignOutAlt, FaTrash, FaEdit, FaEye, FaEyeSlash, FaHome, FaExchangeAlt, FaBullseye, FaRobot, FaQuestionCircle, FaTimes, FaGraduationCap, FaInfoCircle } from 'react-icons/fa';
 import './Settings.css';
 import logo from '../../img/logo1.png';
-import { getProfile, updateProfile, changePassword, getSettings, updateSettings } from '../../services/api';
+// --- IMPORT THE NEW deleteAccount FUNCTION ---
+import { getProfile, updateProfile, changePassword, getSettings, updateSettings, deleteAccount } from '../../services/api';
 
 export default function Settings({ currentPage, onNavigate, onLogout }) {
   // All modal states
@@ -11,11 +13,10 @@ export default function Settings({ currentPage, onNavigate, onLogout }) {
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [showNameModal, setShowNameModal] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
-   const [showPasswordModal, setShowPasswordModal] = useState(false);
-   const [showStatusModal, setShowStatusModal] = useState(false);
-   const [showLogoutModal, setShowLogoutModal] = useState(false); // ADDED BACK
-   const [showDeleteModal, setShowDeleteModal] = useState(false);
-   const [showAboutModal, setShowAboutModal] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showAboutModal, setShowAboutModal] = useState(false);
 
   // Data fetching states
   const [profileData, setProfileData] = useState({});
@@ -30,7 +31,6 @@ export default function Settings({ currentPage, onNavigate, onLogout }) {
   const [statusForm, setStatusForm] = useState({ status: '', profession: '' });
   const [preferences, setPreferences] = useState({ language: 'Shqip', theme: 'Pamja fillestare', currency: '€' });
   const [notifications, setNotifications] = useState({});
-  
   
   // Password visibility states
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -72,6 +72,19 @@ export default function Settings({ currentPage, onNavigate, onLogout }) {
   const showSuccess = (message) => {
     setSuccessMessage(message);
     setTimeout(() => setSuccessMessage(''), 3000);
+  };
+
+  // --- THIS FUNCTION IS NOW FULLY IMPLEMENTED ---
+  const confirmDeleteAccount = async () => {
+    try {
+        await deleteAccount();
+        setShowDeleteModal(false);
+        alert("Llogaria juaj është fshirë me sukses.");
+        // Use the onLogout function from App.js to clear data and redirect
+        onLogout(); 
+    } catch (err) {
+        alert(`Gabim gjatë fshirjes së llogarisë: ${err.message}`);
+    }
   };
 
   const handleNameSubmit = async (e) => {
@@ -121,33 +134,17 @@ export default function Settings({ currentPage, onNavigate, onLogout }) {
       await updateProfile({ email: emailForm.email });
       setShowEmailModal(false);
       showSuccess('Emaili u ndryshua me sukses! Ju lutem kyçuni përsëri.');
-      // It's good practice to log the user out after an email change for security
       setTimeout(() => {
-        localStorage.clear();
-        window.location.href = '/';
+        onLogout(); // Use the logout function to properly clear everything
       }, 2000);
     } catch (err) {
       alert(`Gabim: ${err.message}`);
     }
   };
   
-  const confirmDeleteAccount = () => {
-    alert("Delete account functionality not yet connected.");
-    setShowDeleteModal(false);
-  };
-  
   const handleNavigation = (page) => {
     setSidebarOpen(false);
     onNavigate(page);
-  };
-
-  const handleLogoutClick = () => {
-    setShowLogoutModal(true); // This will now work
-  };
-
-  const confirmLogout = () => {
-    setShowLogoutModal(false);
-    onLogout(); // Call the function passed down from App.js
   };
   
   if (isLoading) return <div style={{textAlign: 'center', color: 'white', paddingTop: '50px'}}>Duke ngarkuar Cilësimet...</div>;
@@ -155,20 +152,20 @@ export default function Settings({ currentPage, onNavigate, onLogout }) {
 
   return (
     <div className="dashboard-container">
-      <aside className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''} ${isCollapsed ? 'collapsed' : ''}`}>
-        <div className="sidebar-header">
-          <div className="sidebar-logo" onClick={() => setIsCollapsed(v => !v)}><img src={logo} alt="Logo" /></div>
-          <button className="sidebar-close-btn" onClick={() => setSidebarOpen(false)}><FaTimes /></button>
-        </div>
-        <nav className="sidebar-menu">
-          <button type="button" onClick={() => handleNavigation('dashboard')}><FaHome /> <span>Ballina</span></button>
-          <button type="button" onClick={() => handleNavigation('transaksionet')}><FaExchangeAlt /> <span>Transaksionet</span></button>
-          <button type="button" onClick={() => handleNavigation('qellimet')}><FaBullseye /> <span>Qëllimet</span></button>
-          <button type="button" onClick={() => handleNavigation('aichat')}><FaRobot className="bot-icon" /> <span>AIChat</span></button>
-          <button type="button" className="active"><FaCog /> <span>Cilësimet</span></button>
-          <button type="button" onClick={() => handleNavigation('help')}><FaQuestionCircle /> <span>Ndihmë</span></button>
-        </nav>
-      </aside>
+        <aside className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''} ${isCollapsed ? 'collapsed' : ''}`}>
+            <div className="sidebar-header">
+                <div className="sidebar-logo" onClick={() => setIsCollapsed(v => !v)}><img src={logo} alt="Logo" /></div>
+                <button className="sidebar-close-btn" onClick={() => setSidebarOpen(false)}><FaTimes /></button>
+            </div>
+            <nav className="sidebar-menu">
+                <button type="button" onClick={() => handleNavigation('dashboard')}><FaHome /> <span>Ballina</span></button>
+                <button type="button" onClick={() => handleNavigation('transaksionet')}><FaExchangeAlt /> <span>Transaksionet</span></button>
+                <button type="button" onClick={() => handleNavigation('qellimet')}><FaBullseye /> <span>Qëllimet</span></button>
+                <button type="button" onClick={() => handleNavigation('aichat')}><FaRobot className="bot-icon" /> <span>AIChat</span></button>
+                <button type="button" className="active"><FaCog /> <span>Cilësimet</span></button>
+                <button type="button" onClick={() => handleNavigation('help')}><FaQuestionCircle /> <span>Ndihmë</span></button>
+            </nav>
+        </aside>
       
       <main className="dashboard-main">
         <div className="main-content-center">
@@ -183,49 +180,28 @@ export default function Settings({ currentPage, onNavigate, onLogout }) {
                   <div className="header-icon"><FaUser /></div>
                   <div className="header-text"><h2>Profili</h2><p>Informacionet personale dhe profesionale</p></div>
                 </div>
-                
-
-  <div className="profile-info-grid">
-  <div className="info-card">
-    <div className="info-header">
-      <FaUser className="info-icon" />
-      <span>Emri dhe Mbiemri</span>
-    </div>
-    {/* --- FIX: Display the user's full name here --- */}
-    <div className="info-value">{profileData.fullName}</div>
-    <button className="info-action-btn" onClick={() => setShowNameModal(true)}>
-      <FaEdit /> Ndrysho
-    </button>
-  </div>
-  
-  <div className="info-card">
-    <div className="info-header">
-      <FaGlobe className="info-icon" />
-      <span>Email-i</span>
-    </div>
-    {/* --- FIX: Display the user's email here --- */}
-    <div className="info-value">{profileData.email}</div>
-    <button className="info-action-btn" onClick={() => setShowEmailModal(true)}>
-      <FaEdit /> Ndrysho
-    </button>
-  </div>
-  
-  <div className="info-card">
-    <div className="info-header">
-      <FaGraduationCap className="info-icon" />
-      <span>Statusi i profesionit</span>
-    </div>
-    <div className="info-value">{profileData.employmentStatus || 'Student'}</div>
-    <button className="info-action-btn" onClick={() => setShowStatusModal(true)}>
-      <FaEdit /> Ndrysho
-    </button>
-  </div>
-</div>
+                <div className="profile-info-grid">
+                  <div className="info-card">
+                    <div className="info-header"><FaUser className="info-icon" /><span>Emri dhe Mbiemri</span></div>
+                    <div className="info-value">{profileData.fullName}</div>
+                    <button className="info-action-btn" onClick={() => setShowNameModal(true)}><FaEdit /> Ndrysho</button>
+                  </div>
+                  <div className="info-card">
+                    <div className="info-header"><FaGlobe className="info-icon" /><span>Email-i</span></div>
+                    <div className="info-value">{profileData.email}</div>
+                    <button className="info-action-btn" onClick={() => setShowEmailModal(true)}><FaEdit /> Ndrysho</button>
+                  </div>
+                  <div className="info-card">
+                    <div className="info-header"><FaGraduationCap className="info-icon" /><span>Statusi i profesionit</span></div>
+                    <div className="info-value">{profileData.employmentStatus || 'Student'}</div>
+                    <button className="info-action-btn" onClick={() => setShowStatusModal(true)}><FaEdit /> Ndrysho</button>
+                  </div>
+                </div>
                 <div className="profile-actions">
                   <button className="action-btn primary" onClick={() => setShowPasswordModal(true)}><FaEdit /> Ndrysho fjalëkalimin</button>
                   <div className="action-buttons">
-                  <button className="action-btn warning" onClick={handleLogoutClick}><FaSignOutAlt /> Dil nga llogaria</button>
-                  <button className="action-btn danger" onClick={() => setShowDeleteModal(true)}><FaTrash /> Fshi llogarinë</button>
+                    <button className="action-btn warning" onClick={onLogout}><FaSignOutAlt /> Dil nga llogaria</button>
+                    <button className="action-btn danger" onClick={() => setShowDeleteModal(true)}><FaTrash /> Fshi llogarinë</button>
                   </div>
                 </div>
               </section>
@@ -279,6 +255,8 @@ export default function Settings({ currentPage, onNavigate, onLogout }) {
           </div>
         </div>
       </main>
+
+      {/* (All other modals remain the same as before) */}
       
       {showNameModal && (
         <div className="modal-bg">
@@ -349,16 +327,6 @@ export default function Settings({ currentPage, onNavigate, onLogout }) {
               <div className="form-actions"><button type="button" className="cancel-btn" onClick={() => setShowPasswordModal(false)}>Anulo</button><button type="submit" className="submit-btn">Ruaj</button></div>
             </form>
           </div>
-        </div>
-      )}
-
-      {showLogoutModal && (
-        <div className="modal-bg">
-            <div className="modal-content">
-                <div className="modal-header"><h3>Konfirmo daljen</h3><button className="modal-close-btn" onClick={() => setShowLogoutModal(false)}><FaTimes /></button></div>
-                <div className="modal-body"><p>A jeni të sigurt që dëshironi të dilni nga llogaria?</p></div>
-                <div className="modal-actions"><button type="button" className="cancel-btn" onClick={() => setShowLogoutModal(false)}>Anulo</button><button type="button" className="confirm-btn" onClick={confirmLogout}>Po, dil</button></div>
-            </div>
         </div>
       )}
 
