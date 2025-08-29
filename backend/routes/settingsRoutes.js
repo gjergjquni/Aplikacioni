@@ -2,8 +2,9 @@
 
 const Validators = require('../utils/validators');
 const ErrorHandler = require('../middleware/errorHandler');
+const BaseRoutes = require('./BaseRoutes');
 
-class SettingsRoutes {
+class SettingsRoutes extends BaseRoutes {
     async handle(req, res, context) {
         const { authMiddleware, parsedUrl } = context;
 
@@ -319,47 +320,113 @@ class SettingsRoutes {
         }
     }
 
-    // --- GET PRIVACY SETTINGS ---
-    async getPrivacySettings(req, res, { databaseManager }) {
-        // ... your existing code ...
-        this.sendSuccess(res, 200, { message: 'OK' });
-    }
-
-    // --- UPDATE PRIVACY SETTINGS ---
-    async updatePrivacySettings(req, res, { databaseManager }) {
-        // ... your existing code ...
-         this.sendSuccess(res, 200, { message: 'OK' });
-    }
-
-    // --- GET CURRENCY SETTINGS ---
-    async getCurrencySettings(req, res, { databaseManager }) {
-        // ... your existing code ...
-         this.sendSuccess(res, 200, { message: 'OK' });
-    }
-
-    // --- UPDATE CURRENCY SETTINGS ---
-    async updateCurrencySettings(req, res, { databaseManager }) {
-        // ... your existing code ...
-         this.sendSuccess(res, 200, { message: 'OK' });
-    }
+        // --- GET PRIVACY SETTINGS ---
+        async getPrivacySettings(req, res, context) {
+            // This function is now a pointer to the main settings function.
+            return await this.getAllUserSettings(req, res, context);
+        }
+    
+        // --- UPDATE PRIVACY SETTINGS ---
+        async updatePrivacySettings(req, res, context) {
+            // This function is now a pointer to the main settings function.
+            return await this.updateUserSettings(req, res, context);
+        }
+    
+        // --- GET CURRENCY SETTINGS ---
+        async getCurrencySettings(req, res, context) {
+            // This function is now a pointer to the main settings function.
+            return await this.getAllUserSettings(req, res, context);
+        }
+    
+        // --- UPDATE CURRENCY SETTINGS ---
+        async updateCurrencySettings(req, res, context) {
+            // This function is now a pointer to the main settings function.
+            return await this.updateUserSettings(req, res, context);
+        }
 
     // --- EXPORT USER DATA ---
-    async exportUserData(req, res, { databaseManager }) {
-        // ... your existing code ...
-        this.sendSuccess(res, 200, { message: 'OK' });
+    // --- EXPORT USER DATA ---
+async exportUserData(req, res, { databaseManager }) {
+    try {
+        const userId = req.user.userId;
+        const userData = await this.gatherUserData(databaseManager, userId);
+        
+        // Set headers to tell the browser to download the file
+        res.setHeader('Content-disposition', `attachment; filename=ruajmencur_data_${userId}.json`);
+        res.setHeader('Content-type', 'application/json');
+
+        // Send the JSON data as the response
+        res.writeHead(200);
+        res.end(JSON.stringify(userData, null, 2)); 
+
+    } catch (error) {
+        ErrorHandler.logError(error, req);
+        this.sendError(res, 500, 'Failed to export user data.');
     }
+}
 
     // --- DELETE ACCOUNT ---
-    async deleteAccount(req, res, { databaseManager }) {
-        // ... your existing code ...
-         this.sendSuccess(res, 200, { message: 'OK' });
+    // --- THIS IS THE CORRECTED FUNCTION ---
+async deleteAccount(req, res, { databaseManager, sessionManager }) { // <<< THE FIX IS HERE
+    try {
+        const userId = req.user.userId;
+
+        // This will delete the user and all their related data
+        await databaseManager.run('DELETE FROM users WHERE id = ?', [userId]);
+
+        // This will now work correctly to invalidate the user's session token
+        if (sessionManager && req.user.token) {
+            await sessionManager.destroySession(req.user.token);
+        }
+
+        this.sendSuccess(res, 200, { message: 'Account deleted successfully.' });
+
+    } catch (error) {
+        ErrorHandler.logError(error, req);
+        this.sendError(res, 500, 'Failed to delete account.');
     }
+}
 
     // --- HELPER FUNCTION TO GATHER USER DATA ---
-    async gatherUserData(databaseManager, userId) {
-        // ... your existing code ...
-        return {};
+    // --- HELPER FUNCTION TO GATHER USER DATA ---
+async gatherUserData(databaseManager, userId) {
+    try {
+        // Run all database queries at the same time for better performance
+        const [
+            userProfile,
+            transactions,
+            goals,
+            settings
+        ] = await Promise.all([
+            databaseManager.get(`
+                SELECT u.email, u.full_name, u.date_of_birth, u.employment_status, up.job_title, up.monthly_salary
+                FROM users u
+                LEFT JOIN user_profiles up ON u.id = up.user_id
+                WHERE u.id = ?
+            `, [userId]),
+            databaseManager.all('SELECT date, type, category, amount, description, method FROM transactions WHERE user_id = ? ORDER BY date ASC', [userId]),
+            databaseManager.all('SELECT name, category, target_amount, saved_amount, target_date, description FROM goals WHERE user_id = ?', [userId]),
+            databaseManager.get('SELECT theme, currency, language, timezone FROM user_settings WHERE user_id = ?', [userId])
+        ]);
+
+        // Combine all the data into a single object
+        const userData = {
+            profile: userProfile || {},
+            settings: settings || {},
+            financials: {
+                goals: goals || [],
+                transactions: transactions || []
+            },
+            export_date: new Date().toISOString()
+        };
+
+        return userData;
+
+    } catch (error) {
+        console.error(`Error gathering data for user ${userId}:`, error);
+        throw new Error('Failed to gather user data.');
     }
+}
 
     // --- HELPER FUNCTIONS ---
     sendSuccess(res, statusCode, data) {
