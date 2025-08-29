@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { FaCog, FaUser, FaBell, FaPalette, FaGlobe, FaSignOutAlt, FaTrash, FaEdit, FaEye, FaEyeSlash, FaHome, FaExchangeAlt, FaBullseye, FaRobot, FaQuestionCircle, FaTimes, FaGraduationCap, FaInfoCircle } from 'react-icons/fa';
 import './Settings.css';
 import logo from '../../img/logo1.png';
-// --- IMPORT THE NEW deleteAccount FUNCTION ---
 import { getProfile, updateProfile, changePassword, getSettings, updateSettings, deleteAccount } from '../../services/api';
 
 export default function Settings({ currentPage, onNavigate, onLogout }) {
@@ -43,11 +42,11 @@ export default function Settings({ currentPage, onNavigate, onLogout }) {
       setIsLoading(true);
       const [profileRes, settingsRes] = await Promise.all([getProfile(), getSettings()]);
 
-      const userProfile = profileRes.profile || {};
+      const userProfile = profileRes.user || {}; // Use profileRes.user as per your API structure
       setProfileData(userProfile);
-      setNameForm({ fullName: userProfile.fullName || '' });
+      setNameForm({ fullName: userProfile.full_name || '' });
       setEmailForm({ email: userProfile.email || '' });
-      setStatusForm({ status: userProfile.employmentStatus || 'Student', profession: userProfile.jobTitle || '' });
+      setStatusForm({ status: userProfile.employment_status || 'Student', profession: userProfile.job_title || '' });
 
       const userSettings = settingsRes.settings || {};
       setPreferences({ theme: userSettings.theme || 'Pamja fillestare', currency: userSettings.currency || '€' });
@@ -73,14 +72,12 @@ export default function Settings({ currentPage, onNavigate, onLogout }) {
     setSuccessMessage(message);
     setTimeout(() => setSuccessMessage(''), 3000);
   };
-
-  // --- THIS FUNCTION IS NOW FULLY IMPLEMENTED ---
+  
   const confirmDeleteAccount = async () => {
     try {
         await deleteAccount();
         setShowDeleteModal(false);
         alert("Llogaria juaj është fshirë me sukses.");
-        // Use the onLogout function from App.js to clear data and redirect
         onLogout(); 
     } catch (err) {
         alert(`Gabim gjatë fshirjes së llogarisë: ${err.message}`);
@@ -100,7 +97,7 @@ export default function Settings({ currentPage, onNavigate, onLogout }) {
   const handleStatusSubmit = async (e) => {
     e.preventDefault();
     try {
-      await updateProfile({ employmentStatus: statusForm.status, jobTitle: statusForm.profession });
+      await updateProfile({ status: statusForm.status, profession: statusForm.profession });
       setShowStatusModal(false);
       showSuccess('Statusi u ndryshua me sukses!');
       fetchAllData();
@@ -135,7 +132,7 @@ export default function Settings({ currentPage, onNavigate, onLogout }) {
       setShowEmailModal(false);
       showSuccess('Emaili u ndryshua me sukses! Ju lutem kyçuni përsëri.');
       setTimeout(() => {
-        onLogout(); // Use the logout function to properly clear everything
+        onLogout();
       }, 2000);
     } catch (err) {
       alert(`Gabim: ${err.message}`);
@@ -181,22 +178,31 @@ export default function Settings({ currentPage, onNavigate, onLogout }) {
                   <div className="header-text"><h2>Profili</h2><p>Informacionet personale dhe profesionale</p></div>
                 </div>
                 <div className="profile-info-grid">
+                  
+                  {/* --- NAME SECTION --- */}
                   <div className="info-card">
                     <div className="info-header"><FaUser className="info-icon" /><span>Emri dhe Mbiemri</span></div>
-                    <div className="info-value">{profileData.fullName}</div>
+                    {/* <<< THIS IS THE FIX: This div displays the full name */}
+                    <div className="info-value">{profileData.full_name}</div>
                     <button className="info-action-btn" onClick={() => setShowNameModal(true)}><FaEdit /> Ndrysho</button>
                   </div>
+                  
+                  {/* --- EMAIL SECTION --- */}
                   <div className="info-card">
                     <div className="info-header"><FaGlobe className="info-icon" /><span>Email-i</span></div>
+                    {/* <<< THIS IS THE FIX: This div displays the email */}
                     <div className="info-value">{profileData.email}</div>
                     <button className="info-action-btn" onClick={() => setShowEmailModal(true)}><FaEdit /> Ndrysho</button>
                   </div>
+
+                  {/* --- STATUS SECTION --- */}
                   <div className="info-card">
                     <div className="info-header"><FaGraduationCap className="info-icon" /><span>Statusi i profesionit</span></div>
-                    <div className="info-value">{profileData.employmentStatus || 'Student'}</div>
+                    <div className="info-value">{profileData.employment_status || 'Student'}</div>
                     <button className="info-action-btn" onClick={() => setShowStatusModal(true)}><FaEdit /> Ndrysho</button>
                   </div>
                 </div>
+
                 <div className="profile-actions">
                   <button className="action-btn primary" onClick={() => setShowPasswordModal(true)}><FaEdit /> Ndrysho fjalëkalimin</button>
                   <div className="action-buttons">
@@ -255,8 +261,8 @@ export default function Settings({ currentPage, onNavigate, onLogout }) {
           </div>
         </div>
       </main>
-
-      {/* (All other modals remain the same as before) */}
+      
+      {/* (All modals remain the same) */}
       
       {showNameModal && (
         <div className="modal-bg">

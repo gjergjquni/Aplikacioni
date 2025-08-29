@@ -144,7 +144,10 @@ const Qellimet = ({ onNavigate, currentPage }) => {
 
   const handleUpdateProgress = (id, newAmount) => {
     const goalToUpdate = qellimet.find(q => q.id === id);
-    if (!goalToUpdate) return;
+    // --- CHANGE: Prevent updates if the goal is already completed ---
+    if (!goalToUpdate || parseFloat(goalToUpdate.saved_amount) >= parseFloat(goalToUpdate.target_amount)) {
+        return; 
+    }
 
     const updatedQellimet = qellimet.map(q => 
         q.id === id ? { ...q, saved_amount: Math.min(Number(newAmount), q.target_amount) } : q
@@ -217,8 +220,13 @@ const Qellimet = ({ onNavigate, currentPage }) => {
                       <div className="qellim-icon" style={{ color: getColorForCategory(q.category) }}>{getIconForCategory(q.category)}</div>
                       <div className="qellim-title"><h3>{q.name}</h3><span className="qellim-category">{q.category}</span></div>
                       <div className="qellim-actions">
-                        <button className="icon-btn" title="Edito" onClick={() => handleEdit(q)}><FaEdit /></button>
-                        <button className="icon-btn" title="Fshi" onClick={() => handleDelete(q.id)}><FaTrash /></button>
+                        {/* --- CHANGE: Disable buttons and add styling when goal is completed --- */}
+                        <button className="icon-btn" title="Edito" onClick={() => handleEdit(q)} disabled={isCompleted} style={{ cursor: isCompleted ? 'not-allowed' : 'pointer', opacity: isCompleted ? 0.5 : 1 }}>
+                          <FaEdit />
+                        </button>
+                        <button className="icon-btn" title="Fshi" onClick={() => handleDelete(q.id)} disabled={isCompleted} style={{ cursor: isCompleted ? 'not-allowed' : 'pointer', opacity: isCompleted ? 0.5 : 1 }}>
+                          <FaTrash />
+                        </button>
                       </div>
                     </div>
                     <div className="qellim-progress">
@@ -231,7 +239,21 @@ const Qellimet = ({ onNavigate, currentPage }) => {
                     <div className="qellim-details">
                       <div className="qellim-amount-input">
                         <label>Përditëso shumën e kursyer:</label>
-                        <input type="number" defaultValue={q.saved_amount} onChange={(e) => handleUpdateProgress(q.id, e.target.value)} min="0" max={q.target_amount} step="10" />
+                        {/* --- CHANGE: Disable input and add styling when goal is completed --- */}
+                        <input 
+                          type="number" 
+                          defaultValue={q.saved_amount} 
+                          onChange={(e) => handleUpdateProgress(q.id, e.target.value)} 
+                          min="0" 
+                          max={q.target_amount} 
+                          step="10" 
+                          disabled={isCompleted}
+                          style={{ 
+                            cursor: isCompleted ? 'not-allowed' : 'auto', 
+                            backgroundColor: isCompleted ? '#2d2f45' : '',
+                            opacity: isCompleted ? 0.7 : 1
+                          }}
+                        />
                       </div>
                       <div className="qellim-info">
                         <div className="info-item">

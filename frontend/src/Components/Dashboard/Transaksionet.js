@@ -115,9 +115,20 @@ const Transaksionet = ({ onNavigate, currentPage }) => {
     setShowModal(true);
   }
 
-  const totalPie = summary.totalIncome + summary.totalExpenses;
-  const percTeArdhura = totalPie > 0 ? Math.round((summary.totalIncome / totalPie) * 100) : 0;
-  const percShpenzime = totalPie > 0 ? 100 - percTeArdhura : 0;
+  // --- THIS IS THE CORRECTED LOGIC FOR THE PIE CHART ---
+  // 1. Convert string values from API to numbers
+  const totalIncome = parseFloat(summary.totalIncome) || 0;
+  const totalExpenses = parseFloat(summary.totalExpenses) || 0;
+  const totalPie = totalIncome + totalExpenses;
+
+  // 2. Calculate percentages based on the numbers
+  let percTeArdhura = 0;
+  let percShpenzime = 0;
+
+  if (totalPie > 0) {
+    percTeArdhura = Math.round((totalIncome / totalPie) * 100);
+    percShpenzime = 100 - percTeArdhura; // Simpler and avoids rounding errors
+  }
 
   return (
     <div className="dashboard-container">
